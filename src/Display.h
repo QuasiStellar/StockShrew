@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Common.h"
 #include <bitset>
 #include <iostream>
+
+#include "Common.h"
 
 void displayBitmap(ushort bitmap);

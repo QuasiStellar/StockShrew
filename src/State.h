@@ -7,9 +7,12 @@
 #include <iostream>
 
 #include "Common.h"
-#include "Side.h"
-#include "Piece.h"
+#include "Evaluation.h"
+#include "LookupTables.h"
 #include "Phase.h"
+#include "Piece.h"
+#include "Side.h"
+#include "Strategy.h"
 
 struct State {
 
@@ -17,9 +20,6 @@ public:
     ushort black;
     ushort white;
     ushort active;
-    ushort superactive;
-    ushort hyperactive;
-    ushort faraway;
     ushort hp1;
     ushort hp2;
     ushort hp3;
@@ -38,28 +38,21 @@ public:
     /// 001       001       Swap  Black
     /// 011       011       Act   White
     /// 111       111
-    ///
-    /// get side:    _stateInfo & 0b1
-    /// get phase:   (_stateInfo >> 1) & 0b1
-    /// get skips b: (_stateInfo >> 2) & 0b111
-    /// get skips w: (_stateInfo >> 5) & 0b111
     byte stateInfo;
 
-    State(Piece* board[4][4], Side side, Phase phase, byte blackSkips, byte whiteSkips);
+    State(Piece *board[4][4], Side side, Phase phase, byte blackSkips, byte whiteSkips);
 
-    float search(byte depth);
+    float search(byte depth, Strategy strategy);
 
     std::vector<State> getOffsprings();
-
-    static void setUp();
 
     static long long stateCount;
 
 private:
     State(ushort black, ushort white,
-        ushort hp1, ushort hp2, ushort hp3, ushort hp4,
-        ushort kings, ushort knights, ushort archers, ushort medics, ushort wizards, ushort shields,
-        byte stateInfo);
+          ushort hp1, ushort hp2, ushort hp3, ushort hp4,
+          ushort kings, ushort knights, ushort archers, ushort medics, ushort wizards, ushort shields,
+          byte stateInfo);
 
     [[nodiscard]] int endGameScore() const;
 
@@ -88,33 +81,31 @@ private:
 
     float abWhiteAct(byte depth);
 
+#pragma region MiniMax
+
+    float mmBlackSwap(byte depth);
+
+    float mmBlackAct(byte depth);
+
+    float mmWhiteSwap(byte depth);
+
+    float mmWhiteAct(byte depth);
+
+#pragma endregion
+
     [[nodiscard]] State swapPieces(byte piece1, byte piece2) const;
 
-    [[nodiscard]] State damage(ushort piece) const;
+    [[nodiscard]] State damage(ushort piece, byte skipMask) const;
 
-    [[nodiscard]] State damage(ushort piece1, ushort piece2) const;
+    [[nodiscard]] State damage(ushort piece1, ushort piece2, byte skipMask) const;
 
-    [[nodiscard]] State heal(ushort piece) const;
+    [[nodiscard]] State heal(ushort piece, byte skipMask) const;
 
-    [[nodiscard]] State heal(ushort piece1, ushort piece2) const;
+    [[nodiscard]] State heal(ushort piece1, ushort piece2, byte skipMask) const;
 
-    [[nodiscard]] State heal(ushort piece1, ushort piece2, ushort piece3) const;
+    [[nodiscard]] State heal(ushort piece1, ushort piece2, ushort piece3, byte skipMask) const;
 
-    [[nodiscard]] State heal(ushort piece1, ushort piece2, ushort piece3, ushort piece4) const;
+    [[nodiscard]] State heal(ushort piece1, ushort piece2, ushort piece3, ushort piece4, byte skipMask) const;
 
-    static void setBitCount();
-
-    static void setSwitchPairs();
-
-    static void setMeleeTargets();
-
-    static void setArcherTargets();
-
-    static void setCompressedKnights();
-
-    static void setCompressedKnightTargets();
-
-    static void setKnightTargetPairs();
-
-    static void setIndex();
+    [[nodiscard]] State wizardSwap(byte piece1, byte piece2, byte skipMask) const;
 };

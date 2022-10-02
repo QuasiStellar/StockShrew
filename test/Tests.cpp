@@ -1,38 +1,19 @@
 #define CATCH_CONFIG_MAIN
 
 #include <algorithm>
-#include "catch.hpp"
+
 #include "../src/State.h"
 #include "../src/Display.h"
+
+#include "catch.hpp"
+
 #include "Abbreviations.h"
+#include "TestUtils.h"
 
 using std::cout, std::endl, std::array, std::vector, std::bitset, std::find_if;
 
-bool contains(const vector<State> &list, const State &subject) {
-    auto iter = find_if(list.begin(), list.end(), [&](const State &state) {
-        return state.black == subject.black
-               && state.white == subject.white
-               && state.active == subject.active
-               && state.superactive == subject.superactive
-               && state.hyperactive == subject.hyperactive
-               && state.faraway == subject.faraway
-               && state.hp1 == subject.hp1
-               && state.hp2 == subject.hp2
-               && state.hp3 == subject.hp3
-               && state.hp4 == subject.hp4
-               && state.kings == subject.kings
-               && state.knights == subject.knights
-               && state.archers == subject.archers
-               && state.medics == subject.medics
-               && state.wizards == subject.wizards
-               && state.shields == subject.shields;
-    });
-    return iter != list.end();
-}
-
-
 TEST_CASE("Swap test", "[OffspringTests]") {
-    State::setUp();
+    setUp();
     Piece *board[4][4] = {
             {w3 __ M3 s1},
             {m3 n2 __ A3},
@@ -77,7 +58,7 @@ TEST_CASE("Swap test", "[OffspringTests]") {
 }
 
 TEST_CASE("Knight test", "[OffspringTests]") {
-    State::setUp();
+    setUp();
     Piece *board[4][4] = {
             {__ __ __ __},
             {__ n3 A3 __},
@@ -154,7 +135,7 @@ TEST_CASE("Knight test", "[OffspringTests]") {
 }
 
 TEST_CASE("Archer test", "[OffspringTests]") {
-    State::setUp();
+    setUp();
     Piece *board[4][4] = {
             {n2 k4 __ m3},
             {__ s1 __ __},
@@ -207,7 +188,7 @@ TEST_CASE("Archer test", "[OffspringTests]") {
 }
 
 TEST_CASE("Medic test", "[OffspringTests]") {
-    State::setUp();
+    setUp();
     Piece *board[4][4] = {
             {__ __ __ k3},
             {__ N3 __ w1},
@@ -284,7 +265,7 @@ TEST_CASE("Medic test", "[OffspringTests]") {
 }
 
 TEST_CASE("Wizard test", "[OffspringTests]") {
-    State::setUp();
+    setUp();
     Piece *board[4][4] = {
             {n2 k4 __ N3},
             {__ s1 __ __},
