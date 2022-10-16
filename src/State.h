@@ -5,14 +5,18 @@
 #include <array>
 #include <vector>
 #include <iostream>
+#include <utility>
 
 #include "Common.h"
+#include "Display.h"
 #include "Evaluation.h"
 #include "LookupTables.h"
 #include "Phase.h"
 #include "Piece.h"
 #include "Side.h"
 #include "Strategy.h"
+
+using std::vector, std::pair, std::string;
 
 struct State {
 
@@ -32,23 +36,31 @@ public:
     ushort shields;
 
     /// 1 BYTE
-    /// [ 0 0 0 ] [ 0 0 0 ] [ 0 ] [ 0 ]
-    /// skips w   skips b   phase side
-    /// 000       000       0-1   0-1
-    /// 001       001       Swap  Black
-    /// 011       011       Act   White
-    /// 111       111
+    /// [ 0 0 ] [ 0 0 ] [ 0 ] [ 0 ]
+    /// skips w skips b phase side
+    /// 00      00      0-1   0-1
+    /// 01      01      Swap  Black
+    /// 10      10      Act   White
+    /// 11      11
     byte stateInfo;
 
     State(Piece *board[4][4], Side side, Phase phase, byte blackSkips, byte whiteSkips);
 
     float search(byte depth, Strategy strategy);
 
-    std::vector<State> getOffsprings();
+    [[nodiscard]] vector<pair<State, string>> getOffsprings() const;
+
+    [[nodiscard]] vector<byte> getBlackSwapMoves() const;
+
+    [[nodiscard]] vector<byte> getWhiteSwapMoves() const;
+
+    [[nodiscard]] vector<int> getBlackActMoves() const;
+
+    [[nodiscard]] vector<int> getWhiteActMoves() const;
 
     static long long stateCount;
 
-private:
+//private:
     State(ushort black, ushort white,
           ushort hp1, ushort hp2, ushort hp3, ushort hp4,
           ushort kings, ushort knights, ushort archers, ushort medics, ushort wizards, ushort shields,
@@ -93,19 +105,15 @@ private:
 
 #pragma endregion
 
-    [[nodiscard]] State swapPieces(byte piece1, byte piece2) const;
+    inline void swap(byte piece1, byte piece2);
 
-    [[nodiscard]] State damage(ushort piece, byte skipMask) const;
+    inline void makeSwap(byte swapMask);
 
-    [[nodiscard]] State damage(ushort piece1, ushort piece2, byte skipMask) const;
+    inline void makeBlackAct(int actMask);
 
-    [[nodiscard]] State heal(ushort piece, byte skipMask) const;
+    inline void makeWhiteAct(int actMask);
 
-    [[nodiscard]] State heal(ushort piece1, ushort piece2, byte skipMask) const;
+    inline void unmakeBlackAct(int actMask);
 
-    [[nodiscard]] State heal(ushort piece1, ushort piece2, ushort piece3, byte skipMask) const;
-
-    [[nodiscard]] State heal(ushort piece1, ushort piece2, ushort piece3, ushort piece4, byte skipMask) const;
-
-    [[nodiscard]] State wizardSwap(byte piece1, byte piece2, byte skipMask) const;
+    inline void unmakeWhiteAct(int actMask);
 };

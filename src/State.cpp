@@ -1,7 +1,5 @@
 #include "State.h"
 
-using std::cout, std::endl, std::array, std::vector;
-
 const byte BLACK = 0b0;
 const byte WHITE = 0b1;
 const byte SWAP = 0b0;
@@ -69,52 +67,52 @@ State::State(Piece *board[4][4], Side side, Phase phase, byte blackSkips, byte w
         }
     }
 
-    active = (this->black & (this->black << 4
-                             | this->black >> 4
-                             | (this->black << 1) & NOT_RIGHTMOST
-                             | (this->black >> 1) & NOT_LEFTMOST))
-             | (this->white & (this->white << 4
-                               | this->white >> 4
-                               | (this->white << 1) & NOT_RIGHTMOST
-                               | (this->white >> 1) & NOT_LEFTMOST));
+    active = ((black & (black << 4 & (hp1 << 4 | hp2 << 4 | hp3 << 4 | hp4 << 4)
+                        | black >> 4 & (hp1 >> 4 | hp2 >> 4 | hp3 >> 4 | hp4 >> 4)
+                        | (black << 1) & NOT_RIGHTMOST & (hp1 << 1 | hp2 << 1 | hp3 << 1 | hp4 << 1)
+                        | (black >> 1) & NOT_LEFTMOST & (hp1 >> 1 | hp2 >> 1 | hp3 >> 1 | hp4 >> 1)))
+              | (white & (white << 4 & (hp1 << 4 | hp2 << 4 | hp3 << 4 | hp4 << 4)
+                          | white >> 4 & (hp1 >> 4 | hp2 >> 4 | hp3 >> 4 | hp4 >> 4)
+                          | (white << 1) & NOT_RIGHTMOST & (hp1 << 1 | hp2 << 1 | hp3 << 1 | hp4 << 1)
+                          | (white >> 1) & NOT_LEFTMOST & (hp1 >> 1 | hp2 >> 1 | hp3 >> 1 | hp4 >> 1))))
+             & (hp1 | hp2 | hp3 | hp4);
 
     stateInfo = (int) side + ((int) phase << 1)
-                + (blackSkips == 1 ? 0b100 : 0)
-                + (blackSkips == 2 ? 0b1100 : 0)
-                + (blackSkips == 3 ? 0b11100 : 0)
-                + (whiteSkips == 1 ? 0b100000 : 0)
-                + (whiteSkips == 2 ? 0b1100000 : 0)
-                + (whiteSkips == 3 ? 0b11100000 : 0);
+                + (blackSkips == 1 ? 0b0100 : 0)
+                + (blackSkips == 2 ? 0b1000 : 0)
+                + (blackSkips == 3 ? 0b1100 : 0)
+                + (whiteSkips == 1 ? 0b010000 : 0)
+                + (whiteSkips == 2 ? 0b100000 : 0)
+                + (whiteSkips == 3 ? 0b110000 : 0);
 }
 
 State::State(ushort black, ushort white,
              ushort hp1, ushort hp2, ushort hp3, ushort hp4,
              ushort kings, ushort knights, ushort archers, ushort medics, ushort wizards, ushort shields,
-             byte stateInfo) {
+             byte stateInfo)
+        : black(black),
+          white(white),
+          hp1(hp1),
+          hp2(hp2),
+          hp3(hp3),
+          hp4(hp4),
+          kings(kings),
+          knights(knights),
+          archers(archers),
+          medics(medics),
+          wizards(wizards),
+          shields(shields),
+          stateInfo(stateInfo) {
 
-    this->black = black;
-    this->white = white;
-    this->hp1 = hp1;
-    this->hp2 = hp2;
-    this->hp3 = hp3;
-    this->hp4 = hp4;
-    this->hp4 = hp4;
-    this->kings = kings;
-    this->knights = knights;
-    this->archers = archers;
-    this->medics = medics;
-    this->wizards = wizards;
-    this->shields = shields;
-    this->stateInfo = stateInfo;
-
-    active = (this->black & (this->black << 4
-                             | this->black >> 4
-                             | (this->black << 1) & NOT_RIGHTMOST
-                             | (this->black >> 1) & NOT_LEFTMOST))
-             | (this->white & (this->white << 4
-                               | this->white >> 4
-                               | (this->white << 1) & NOT_RIGHTMOST
-                               | (this->white >> 1) & NOT_LEFTMOST));
+    active = ((black & (black << 4 & (hp1 << 4 | hp2 << 4 | hp3 << 4 | hp4 << 4)
+                        | black >> 4 & (hp1 >> 4 | hp2 >> 4 | hp3 >> 4 | hp4 >> 4)
+                        | (black << 1) & NOT_RIGHTMOST & (hp1 << 1 | hp2 << 1 | hp3 << 1 | hp4 << 1)
+                        | (black >> 1) & NOT_LEFTMOST & (hp1 >> 1 | hp2 >> 1 | hp3 >> 1 | hp4 >> 1)))
+              | (white & (white << 4 & (hp1 << 4 | hp2 << 4 | hp3 << 4 | hp4 << 4)
+                          | white >> 4 & (hp1 >> 4 | hp2 >> 4 | hp3 >> 4 | hp4 >> 4)
+                          | (white << 1) & NOT_RIGHTMOST & (hp1 << 1 | hp2 << 1 | hp3 << 1 | hp4 << 1)
+                          | (white >> 1) & NOT_LEFTMOST & (hp1 >> 1 | hp2 >> 1 | hp3 >> 1 | hp4 >> 1))))
+             & (hp1 | hp2 | hp3 | hp4);
 }
 
 float State::search(byte depth, Strategy strategy) {
@@ -157,11 +155,11 @@ float State::search(byte depth, Strategy strategy) {
     return 0;
 }
 
-int State::endGameScore() const {
-    if ((stateInfo >> 4) & 1) return INT_MIN; // black is out of skips
-    if ((stateInfo >> 7) & 1) return INT_MAX; // white is out of skips
-    bool blackKing = (black & kings) != 0;
-    bool whiteKing = (white & kings) != 0;
+inline int State::endGameScore() const {
+    if ((stateInfo >> 2) & 11) return INT_MIN; // black is out of skips
+    if ((stateInfo >> 4) & 11) return INT_MAX; // white is out of skips
+    bool blackKing = (black & kings & (hp1 | hp2 | hp3 | hp4)) != 0;
+    bool whiteKing = (white & kings & (hp1 | hp2 | hp3 | hp4)) != 0;
     bool blackActive = (black & active) != 0;
     bool whiteActive = (white & active) != 0;
     if (!blackActive && !whiteActive) return 0;
@@ -173,67 +171,70 @@ int State::endGameScore() const {
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "bugprone-narrowing-conversions"
 
-float State::evaluate() const {
+inline float State::evaluate() const {
 
-    ushort blackUp = this->black << 4;
-    ushort blackDown = this->black >> 4;
-    ushort blackRight = (this->black << 1) & NOT_RIGHTMOST;
-    ushort blackLeft = (this->black >> 1) & NOT_LEFTMOST;
+    ushort blackUp = black << 4 & (hp1 << 4 | hp2 << 4 | hp3 << 4 | hp4 << 4);
+    ushort blackDown = black >> 4 & (hp1 >> 4 | hp2 >> 4 | hp3 >> 4 | hp4 >> 4);
+    ushort blackRight = (black << 1) & NOT_RIGHTMOST & (hp1 << 1 | hp2 << 1 | hp3 << 1 | hp4 << 1);
+    ushort blackLeft = (black >> 1) & NOT_LEFTMOST & (hp1 >> 1 | hp2 >> 1 | hp3 >> 1 | hp4 >> 1);
 
-    ushort whiteUp = this->white << 4;
-    ushort whiteDown = this->white >> 4;
-    ushort whiteRight = (this->white << 1) & NOT_RIGHTMOST;
-    ushort whiteLeft = (this->white >> 1) & NOT_LEFTMOST;
+    ushort whiteUp = white << 4 & (hp1 << 4 | hp2 << 4 | hp3 << 4 | hp4 << 4);
+    ushort whiteDown = white >> 4 & (hp1 >> 4 | hp2 >> 4 | hp3 >> 4 | hp4 >> 4);
+    ushort whiteRight = (white << 1) & NOT_RIGHTMOST & (hp1 << 1 | hp2 << 1 | hp3 << 1 | hp4 << 1);
+    ushort whiteLeft = (white >> 1) & NOT_LEFTMOST & (hp1 >> 1 | hp2 >> 1 | hp3 >> 1 | hp4 >> 1);
 
-    ushort superactive = (this->black & ((blackUp & blackDown)
-                                         | (blackRight & blackLeft)
-                                         | (blackUp & blackRight)
-                                         | (blackRight & blackDown)
-                                         | (blackDown & blackLeft)
-                                         | (blackLeft & blackUp)))
-                         | (this->white & ((whiteUp & whiteDown)
-                                           | (whiteRight & whiteLeft)
-                                           | (whiteUp & whiteRight)
-                                           | (whiteRight & whiteDown)
-                                           | (whiteDown & whiteLeft)
-                                           | (whiteLeft & whiteUp)));
+    ushort superactive = ((black & ((blackUp & blackDown)
+                                    | (blackRight & blackLeft)
+                                    | (blackUp & blackRight)
+                                    | (blackRight & blackDown)
+                                    | (blackDown & blackLeft)
+                                    | (blackLeft & blackUp)))
+                          | (white & ((whiteUp & whiteDown)
+                                      | (whiteRight & whiteLeft)
+                                      | (whiteUp & whiteRight)
+                                      | (whiteRight & whiteDown)
+                                      | (whiteDown & whiteLeft)
+                                      | (whiteLeft & whiteUp))))
+                         & (hp1 | hp2 | hp3 | hp4);
 
-    ushort hyperactive = (this->black & ((blackUp & blackRight & blackLeft)
-                                         | (blackDown & blackRight & blackLeft)
-                                         | (blackRight & blackUp & blackDown)
-                                         | (blackLeft & blackUp & blackDown)))
-                         | (this->white & ((whiteUp & whiteRight & whiteLeft)
-                                           | (whiteDown & whiteRight & whiteLeft)
-                                           | (whiteRight & whiteUp & whiteDown)
-                                           | (whiteLeft & whiteUp & whiteDown)));
+    ushort hyperactive = ((black & ((blackUp & blackRight & blackLeft)
+                                    | (blackDown & blackRight & blackLeft)
+                                    | (blackRight & blackUp & blackDown)
+                                    | (blackLeft & blackUp & blackDown)))
+                          | (white & ((whiteUp & whiteRight & whiteLeft)
+                                      | (whiteDown & whiteRight & whiteLeft)
+                                      | (whiteRight & whiteUp & whiteDown)
+                                      | (whiteLeft & whiteUp & whiteDown))))
+                         & (hp1 | hp2 | hp3 | hp4);
 
-    ushort blackActive = this->black & active;
-    ushort whiteActive = this->white & active;
+    ushort blackActive = black & active;
+    ushort whiteActive = white & active;
 
-    ushort faraway = (this->black & ~((blackActive << 4)
-                                      | (blackActive >> 4)
-                                      | ((blackActive << 1) & NOT_RIGHTMOST)
-                                      | ((blackActive >> 1) & NOT_LEFTMOST)
-                                      | ((blackActive << 5) & NOT_RIGHTMOST)
-                                      | ((blackActive << 3) & NOT_LEFTMOST)
-                                      | ((blackActive >> 5) & NOT_LEFTMOST)
-                                      | ((blackActive >> 3) & NOT_RIGHTMOST)
-                                      | (blackActive << 8)
-                                      | (blackActive >> 8)
-                                      | ((blackActive << 2) & NOT_RIGHT_HALF)
-                                      | ((blackActive >> 2) & NOT_LEFT_HALF)))
-                     | (this->white & ~((whiteActive << 4)
-                                        | (whiteActive >> 4)
-                                        | ((whiteActive << 1) & NOT_RIGHTMOST)
-                                        | ((whiteActive >> 1) & NOT_LEFTMOST)
-                                        | ((whiteActive << 5) & NOT_RIGHTMOST)
-                                        | ((whiteActive << 3) & NOT_LEFTMOST)
-                                        | ((whiteActive >> 5) & NOT_LEFTMOST)
-                                        | ((whiteActive >> 3) & NOT_RIGHTMOST)
-                                        | (whiteActive << 8)
-                                        | (whiteActive >> 8)
-                                        | ((whiteActive << 2) & NOT_RIGHT_HALF)
-                                        | ((whiteActive >> 2) & NOT_LEFT_HALF)));
+    ushort faraway = ((black & ~((blackActive << 4)
+                                 | (blackActive >> 4)
+                                 | ((blackActive << 1) & NOT_RIGHTMOST)
+                                 | ((blackActive >> 1) & NOT_LEFTMOST)
+                                 | ((blackActive << 5) & NOT_RIGHTMOST)
+                                 | ((blackActive << 3) & NOT_LEFTMOST)
+                                 | ((blackActive >> 5) & NOT_LEFTMOST)
+                                 | ((blackActive >> 3) & NOT_RIGHTMOST)
+                                 | (blackActive << 8)
+                                 | (blackActive >> 8)
+                                 | ((blackActive << 2) & NOT_RIGHT_HALF)
+                                 | ((blackActive >> 2) & NOT_LEFT_HALF)))
+                      | (white & ~((whiteActive << 4)
+                                   | (whiteActive >> 4)
+                                   | ((whiteActive << 1) & NOT_RIGHTMOST)
+                                   | ((whiteActive >> 1) & NOT_LEFTMOST)
+                                   | ((whiteActive << 5) & NOT_RIGHTMOST)
+                                   | ((whiteActive << 3) & NOT_LEFTMOST)
+                                   | ((whiteActive >> 5) & NOT_LEFTMOST)
+                                   | ((whiteActive >> 3) & NOT_RIGHTMOST)
+                                   | (whiteActive << 8)
+                                   | (whiteActive >> 8)
+                                   | ((whiteActive << 2) & NOT_RIGHT_HALF)
+                                   | ((whiteActive >> 2) & NOT_LEFT_HALF))))
+                     & (hp1 | hp2 | hp3 | hp4);
 
     return ((stateInfo & 0b1) == BLACK && ((stateInfo >> 1) & 0b1) == SWAP ? SWAP_ADVANTAGE : 0)
            - ((stateInfo & 0b1) == WHITE && ((stateInfo >> 1) & 0b1) == SWAP ? SWAP_ADVANTAGE : 0)
@@ -449,8 +450,10 @@ float State::abBlackSwap(float alpha, float beta, byte depth) {
     int endGameScore = this->endGameScore();
     if (endGameScore != -1) return (float) endGameScore;
     if (depth == 0) return evaluate();
-    for (State offspring: this->getOffsprings()) {
-        float score = offspring.abBlackAct(alpha, beta, depth - 1);
+    for (byte move: getBlackSwapMoves()) {
+        makeSwap(move);
+        float score = abBlackAct(alpha, beta, depth - 1);
+        makeSwap(move);
         if (score >= beta) return beta;
         if (score > alpha) alpha = score;
     }
@@ -464,8 +467,10 @@ float State::abBlackAct(float alpha, float beta, byte depth) {
     int endGameScore = this->endGameScore();
     if (endGameScore != -1) return (float) endGameScore;
     if (depth == 0) return evaluate();
-    for (State offspring: this->getOffsprings()) {
-        float score = offspring.abWhiteSwap(alpha, beta, depth - 1);
+    for (int move: getBlackActMoves()) {
+        makeBlackAct(move);
+        float score = abWhiteSwap(alpha, beta, depth - 1);
+        unmakeBlackAct(move);
         if (score >= beta) return beta;
         if (score > alpha) alpha = score;
     }
@@ -479,8 +484,10 @@ float State::abWhiteSwap(float alpha, float beta, byte depth) {
     int endGameScore = this->endGameScore();
     if (endGameScore != -1) return (float) endGameScore;
     if (depth == 0) return evaluate();
-    for (State offspring: this->getOffsprings()) {
-        float score = offspring.abWhiteAct(alpha, beta, depth - 1);
+    for (byte move: getWhiteSwapMoves()) {
+        makeSwap(move);
+        float score = abWhiteAct(alpha, beta, depth - 1);
+        makeSwap(move);
         if (score <= alpha) return alpha;
         if (score < beta) beta = score;
     }
@@ -494,8 +501,10 @@ float State::abWhiteAct(float alpha, float beta, byte depth) {
     int endGameScore = this->endGameScore();
     if (endGameScore != -1) return (float) endGameScore;
     if (depth == 0) return evaluate();
-    for (State offspring: this->getOffsprings()) {
-        float score = offspring.abBlackSwap(alpha, beta, depth - 1);
+    for (int move: getWhiteActMoves()) {
+        makeWhiteAct(move);
+        float score = abBlackSwap(alpha, beta, depth - 1);
+        unmakeWhiteAct(move);
         if (score <= alpha) return alpha;
         if (score < beta) beta = score;
     }
@@ -512,8 +521,10 @@ float State::mmBlackSwap(byte depth) {
     if (endGameScore != -1) return (float) endGameScore;
     if (depth == 0) return evaluate();
     float max = INT_MIN;
-    for (State offspring: this->getOffsprings()) {
-        float score = offspring.mmBlackAct(depth - 1);
+    for (byte move: getBlackSwapMoves()) {
+        makeSwap(move);
+        float score = mmBlackAct(depth - 1);
+        makeSwap(move);
         if (score > max) max = score;
     }
     return max;
@@ -525,8 +536,10 @@ float State::mmBlackAct(byte depth) {
     if (endGameScore != -1) return (float) endGameScore;
     if (depth == 0) return evaluate();
     float max = INT_MIN;
-    for (State offspring: this->getOffsprings()) {
-        float score = offspring.mmWhiteSwap(depth - 1);
+    for (int move: getBlackActMoves()) {
+        makeBlackAct(move);
+        float score = mmWhiteSwap(depth - 1);
+        unmakeBlackAct(move);
         if (score > max) max = score;
     }
     return max;
@@ -537,9 +550,11 @@ float State::mmWhiteSwap(byte depth) {
     int endGameScore = this->endGameScore();
     if (endGameScore != -1) return (float) endGameScore;
     if (depth == 0) return evaluate();
-    float min = INT_MAX;
-    for (State offspring: this->getOffsprings()) {
-        float score = offspring.mmWhiteAct(depth - 1);
+    auto min = (float) INT_MAX;
+    for (byte move: getWhiteSwapMoves()) {
+        makeSwap(move);
+        float score = mmWhiteAct(depth - 1);
+        makeSwap(move);
         if (score < min) min = score;
     }
     return min;
@@ -550,9 +565,11 @@ float State::mmWhiteAct(byte depth) {
     int endGameScore = this->endGameScore();
     if (endGameScore != -1) return (float) endGameScore;
     if (depth == 0) return evaluate();
-    float min = INT_MAX;
-    for (State offspring: this->getOffsprings()) {
-        float score = offspring.mmBlackSwap(depth - 1);
+    auto min = (float) INT_MAX;
+    for (int move: getWhiteActMoves()) {
+        makeWhiteAct(move);
+        float score = mmBlackSwap(depth - 1);
+        unmakeWhiteAct(move);
         if (score < min) min = score;
     }
     return min;
@@ -562,326 +579,414 @@ float State::mmWhiteAct(byte depth) {
 
 #pragma clang diagnostic pop
 
-vector<State> State::getOffsprings() {
-    vector<State> offsprings;
-    ushort ours = (stateInfo & 0b1) == BLACK ? black : white;
-    ushort theirs = (stateInfo & 0b1) == BLACK ? white : black;
-    ushort swapTargets;
-    ushort underAttack;
-    ushort healTargets;
-    ushort medic;
-    byte medicIndex;
-    ushort medicUp;
-    ushort medicDown;
-    ushort medicLeft;
-    ushort medicRight;
-    ushort wizardSwap;
+inline void State::swap(byte piece1, byte piece2) {
+    black = (((((black >> piece1) & 1) ^ ((black >> piece2) & 1)) << piece1) |
+             ((((black >> piece1) & 1) ^ ((black >> piece2) & 1)) << piece2)) ^ black;
+    white = (((((white >> piece1) & 1) ^ ((white >> piece2) & 1)) << piece1) |
+             ((((white >> piece1) & 1) ^ ((white >> piece2) & 1)) << piece2)) ^ white;
+    hp1 = (((((hp1 >> piece1) & 1) ^ ((hp1 >> piece2) & 1)) << piece1) |
+           ((((hp1 >> piece1) & 1) ^ ((hp1 >> piece2) & 1)) << piece2)) ^ hp1;
+    hp2 = (((((hp2 >> piece1) & 1) ^ ((hp2 >> piece2) & 1)) << piece1) |
+           ((((hp2 >> piece1) & 1) ^ ((hp2 >> piece2) & 1)) << piece2)) ^ hp2;
+    hp3 = (((((hp3 >> piece1) & 1) ^ ((hp3 >> piece2) & 1)) << piece1) |
+           ((((hp3 >> piece1) & 1) ^ ((hp3 >> piece2) & 1)) << piece2)) ^ hp3;
+    hp4 = (((((hp4 >> piece1) & 1) ^ ((hp4 >> piece2) & 1)) << piece1) |
+           ((((hp4 >> piece1) & 1) ^ ((hp4 >> piece2) & 1)) << piece2)) ^ hp4;
+    kings = (((((kings >> piece1) & 1) ^ ((kings >> piece2) & 1)) << piece1) |
+             ((((kings >> piece1) & 1) ^ ((kings >> piece2) & 1)) << piece2)) ^ kings;
+    knights = (((((knights >> piece1) & 1) ^ ((knights >> piece2) & 1)) << piece1) |
+               ((((knights >> piece1) & 1) ^ ((knights >> piece2) & 1)) << piece2)) ^ knights;
+    archers = (((((archers >> piece1) & 1) ^ ((archers >> piece2) & 1)) << piece1) |
+               ((((archers >> piece1) & 1) ^ ((archers >> piece2) & 1)) << piece2)) ^ archers;
+    medics = (((((medics >> piece1) & 1) ^ ((medics >> piece2) & 1)) << piece1) |
+              ((((medics >> piece1) & 1) ^ ((medics >> piece2) & 1)) << piece2)) ^ medics;
+    wizards = (((((wizards >> piece1) & 1) ^ ((wizards >> piece2) & 1)) << piece1) |
+               ((((wizards >> piece1) & 1) ^ ((wizards >> piece2) & 1)) << piece2)) ^ wizards;
+    shields = (((((shields >> piece1) & 1) ^ ((shields >> piece2) & 1)) << piece1) |
+               ((((shields >> piece1) & 1) ^ ((shields >> piece2) & 1)) << piece2)) ^ shields;
+}
 
-    switch ((stateInfo >> 1) & 0b1) { // Phase
+inline void State::makeSwap(byte swapMask) {
+    swap(swapMask >> 4, swapMask & 0b1111);
+    stateInfo = stateInfo ^ 0b10;
+}
+
+/// type
+/// 00 - skip
+/// 01 - wizard swap
+/// 10 - attack
+/// 11 - heal
+///
+/// skip
+/// [ 0 ]
+/// type
+///
+/// wizard swap
+/// [ 0 0 0 0 ] [ 0 0 0 0 ] [ 0 0 ] [ 0 0 ]
+/// first index second index skips  type
+///
+/// damage
+/// [ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ] [ 0 0 ] [ 0 0 ]
+/// mask                                skips   type
+///
+/// heal
+/// [ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ] [ 0 0 ] [ 0 0 ]
+/// mask                                skips   type
+
+inline void State::makeBlackAct(int actMask) {
+    switch (actMask & 0b11) {
+        case 0:
+            stateInfo = (((stateInfo >> 2) + 1) << 2) | (stateInfo & 0b11 ^ 0b11);
+            break;
+        case 1:
+            swap(actMask >> 8, actMask >> 4 & 0b1111);
+            stateInfo = stateInfo & 0b11110011 ^ 0b11;
+            break;
+        case 2:
+            hp1 = hp1 & ~(actMask >> 4) | hp2 & actMask >> 4;
+            hp2 = hp2 & ~(actMask >> 4) | hp3 & actMask >> 4;
+            hp3 = hp3 & ~(actMask >> 4) | hp4 & actMask >> 4;
+            hp4 = hp4 & ~(actMask >> 4);
+            stateInfo = stateInfo & 0b11110011 ^ 0b11;
+            break;
+        case 3:
+            hp4 = hp4 | (hp3 & actMask >> 4);
+            hp3 = hp3 & ~(actMask >> 4) | hp2 & actMask >> 4;
+            hp2 = hp2 & ~(actMask >> 4) | hp1 & actMask >> 4;
+            hp1 = hp1 & ~(actMask >> 4);
+            stateInfo = stateInfo & 0b11110011 ^ 0b11;
+            break;
+    }
+}
+
+inline void State::unmakeBlackAct(int actMask) {
+    switch (actMask & 0b11) {
+        case 0:
+            stateInfo = (((stateInfo >> 2) - 1) << 2) | (stateInfo & 0b11 ^ 0b11);
+            break;
+        case 1:
+            swap(actMask >> 8, actMask >> 4 & 0b1111);
+            stateInfo = ((stateInfo & 0b11110011) + (actMask & 0b1100)) ^ 0b11;
+            break;
+        case 2:
+            hp4 = hp4 | (hp3 & actMask >> 4);
+            hp3 = hp3 & ~(actMask >> 4) | hp2 & actMask >> 4;
+            hp2 = hp2 & ~(actMask >> 4) | hp1 & actMask >> 4;
+            hp1 = hp1 & ~(actMask >> 4) | ~(hp1 | hp2 | hp3 | hp4) & actMask >> 4;
+            stateInfo = ((stateInfo & 0b11110011) + (actMask & 0b1100)) ^ 0b11;
+            break;
+        case 3:
+            hp1 = hp1 | hp2 & actMask >> 4;
+            hp2 = hp2 & ~(actMask >> 4) | hp3 & actMask >> 4;
+            hp3 = hp3 & ~(actMask >> 4) | hp4 & actMask >> 4;
+            hp4 = hp4 & ~(actMask >> 4);
+            stateInfo = ((stateInfo & 0b11110011) + (actMask & 0b1100)) ^ 0b11;
+            break;
+    }
+}
+
+inline void State::makeWhiteAct(int actMask) {
+    switch (actMask & 0b11) {
+        case 0:
+            stateInfo = (((stateInfo >> 4) + 1) << 4) | (stateInfo & 0b1111 ^ 0b11);
+            break;
+        case 1:
+            swap(actMask >> 8, actMask >> 4 & 0b1111);
+            stateInfo = stateInfo & 0b11001111 ^ 0b11;
+            break;
+        case 2:
+            hp1 = hp1 & ~(actMask >> 4) | hp2 & actMask >> 4;
+            hp2 = hp2 & ~(actMask >> 4) | hp3 & actMask >> 4;
+            hp3 = hp3 & ~(actMask >> 4) | hp4 & actMask >> 4;
+            hp4 = hp4 & ~(actMask >> 4);
+            stateInfo = stateInfo & 0b11001111 ^ 0b11;
+            break;
+        case 3:
+            hp4 = hp4 | (hp3 & actMask >> 4);
+            hp3 = hp3 & ~(actMask >> 4) | hp2 & actMask >> 4;
+            hp2 = hp2 & ~(actMask >> 4) | hp1 & actMask >> 4;
+            hp1 = hp1 & ~(actMask >> 4);
+            stateInfo = stateInfo & 0b11001111 ^ 0b11;
+            break;
+    }
+}
+
+inline void State::unmakeWhiteAct(int actMask) {
+    switch (actMask & 0b11) {
+        case 0:
+            stateInfo = (((stateInfo >> 4) - 1) << 4) | (stateInfo & 0b1111 ^ 0b11);
+            break;
+        case 1:
+            swap(actMask >> 8, actMask >> 4 & 0b1111);
+            stateInfo = ((stateInfo & 0b11001111) + ((actMask & 0b1100) << 2)) ^ 0b11;
+            break;
+        case 2:
+            hp4 = hp4 | (hp3 & actMask >> 4);
+            hp3 = hp3 & ~(actMask >> 4) | hp2 & actMask >> 4;
+            hp2 = hp2 & ~(actMask >> 4) | hp1 & actMask >> 4;
+            hp1 = hp1 & ~(actMask >> 4) | ~(hp1 | hp2 | hp3 | hp4) & actMask >> 4;
+            stateInfo = ((stateInfo & 0b11001111) + ((actMask & 0b1100) << 2)) ^ 0b11;
+            break;
+        case 3:
+            hp1 = hp1 | hp2 & actMask >> 4;
+            hp2 = hp2 & ~(actMask >> 4) | hp3 & actMask >> 4;
+            hp3 = hp3 & ~(actMask >> 4) | hp4 & actMask >> 4;
+            hp4 = hp4 & ~(actMask >> 4);
+            stateInfo = ((stateInfo & 0b11001111) + ((actMask & 0b1100) << 2)) ^ 0b11;
+            break;
+    }
+}
+
+vector<pair<State, string>> State::getOffsprings() const {
+    vector<pair<State, string>> offsprings = vector<pair<State, string>>();
+    vector<byte> swapMoves = stateInfo & 1 ? getWhiteSwapMoves() : getBlackSwapMoves();
+    vector<int> actMoves = stateInfo & 1 ? getWhiteActMoves() : getBlackActMoves();
+    switch ((stateInfo >> 1) & 0b1) {
         case SWAP:
-            swapTargets = (black | white) & ~(theirs & shields);
-            for (auto &pair: switchPairs[ours & active]) {
-                if ((1 << pair[1] & swapTargets) != 0) {
-                    offsprings.push_back(this->swapPieces(pair[0], pair[1]));
-                }
+            for (byte move: swapMoves) {
+                State newState = *this;
+                newState.makeSwap(move);
+                offsprings.emplace_back(newState, displaySwap(move));
             }
             break;
-
         case ACT:
-
-            byte skipMask = (stateInfo & 0b1) == BLACK ? 0b11100011 : 0b00011100;
-
-            // Double attack
-            if (active & ours & knights) {
-                vector<array<byte, 2>> targets = knightTargetPairs[
-                        compressedKnightTargets[
-                                meleeTargets[knights & active & ours] & theirs
-                        ][
-                                compressedKnights[active & ours & knights]
-                        ]
-                ][compressedKnights[active & ours & knights]];
-                for (auto &target: targets) {
-                    offsprings.push_back(this->damage(1 << target[0], 1 << target[1], skipMask));
-                }
+            for (int move: actMoves) {
+                State newState = *this;
+                if (stateInfo & 1) newState.makeWhiteAct(move);
+                else newState.makeBlackAct(move);
+                offsprings.emplace_back(newState, displayAct(move));
             }
-
-            // Heal
-            medic = active & ours & medics;
-            if (medic) {
-                medicIndex = idx[medic];
-                healTargets = ours & ((~kings & ~shields & ~hp3) | ((kings | shields) & ~hp4));
-                medicUp = (medic << 4) & healTargets;
-                medicDown = (medic >> 4) & healTargets;
-                medicLeft = medicIndex % 4 != 0 ? (medic >> 1) & healTargets : 0;
-                medicRight = medicIndex % 4 != 3 ? (medic << 1) & healTargets : 0;
-                if (medicUp && medicDown && medicLeft && medicRight) {
-                    offsprings.push_back(this->heal(medicUp, medicDown, medicLeft, medicRight, skipMask));
-                }
-                if (medicUp && medicDown && medicLeft) {
-                    offsprings.push_back(this->heal(medicUp, medicDown, medicLeft, skipMask));
-                }
-                if (medicUp && medicDown && medicRight) {
-                    offsprings.push_back(this->heal(medicUp, medicDown, medicRight, skipMask));
-                }
-                if (medicUp && medicLeft && medicRight) {
-                    offsprings.push_back(this->heal(medicUp, medicLeft, medicRight, skipMask));
-                }
-                if (medicDown && medicLeft && medicRight) {
-                    offsprings.push_back(this->heal(medicDown, medicLeft, medicRight, skipMask));
-                }
-                if (medicUp && medicDown) {
-                    offsprings.push_back(this->heal(medicUp, medicDown, skipMask));
-                }
-                if (medicUp && medicLeft) {
-                    offsprings.push_back(this->heal(medicUp, medicLeft, skipMask));
-                }
-                if (medicUp && medicRight) {
-                    offsprings.push_back(this->heal(medicUp, medicRight, skipMask));
-                }
-                if (medicDown && medicLeft) {
-                    offsprings.push_back(this->heal(medicDown, medicLeft, skipMask));
-                }
-                if (medicDown && medicRight) {
-                    offsprings.push_back(this->heal(medicDown, medicRight, skipMask));
-                }
-                if (medicLeft && medicRight) {
-                    offsprings.push_back(this->heal(medicLeft, medicRight, skipMask));
-                }
-                if (medicUp) {
-                    offsprings.push_back(this->heal(medicUp, skipMask));
-                }
-                if (medicDown) {
-                    offsprings.push_back(this->heal(medicDown, skipMask));
-                }
-                if (medicLeft) {
-                    offsprings.push_back(this->heal(medicLeft, skipMask));
-                }
-                if (medicRight) {
-                    offsprings.push_back(this->heal(medicRight, skipMask));
-                }
-            }
-
-            // Single attack
-            underAttack = (meleeTargets[(kings | knights | archers) & active & ours] |
-                           archerTargets[archers & active & ours][idx[shields & theirs]]) & theirs;
-            for (byte i = 0; underAttack != 0; underAttack >>= 1) {
-                if (underAttack & 1) {
-                    offsprings.push_back(this->damage(1 << i, skipMask));
-                }
-                i++;
-            }
-
-            // Teleport
-            if (active & ours & wizards) {
-                wizardSwap = ours & ~wizards;
-                for (byte i = 0; wizardSwap != 0; wizardSwap >>= 1) {
-                    if (wizardSwap & 1) {
-                        offsprings.push_back(this->wizardSwap(idx[ours & wizards], i, skipMask));
-                    }
-                    i++;
-                }
-            }
-
-            // Skip
-            if ((stateInfo & 0b1) == BLACK) {
-                if (!(stateInfo & (1 << 2))) {
-                    offsprings.push_back(
-                            State(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields,
-                                  stateInfo ^ 0b11 | 0b00000100));
-                } else if (!(stateInfo & (1 << 3))) {
-                    offsprings.push_back(
-                            State(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields,
-                                  stateInfo ^ 0b11 | 0b00001000));
-                } else {
-                    offsprings.push_back(
-                            State(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields,
-                                  stateInfo ^ 0b11 | 0b00010000));
-                }
-            } else {
-                if (!(stateInfo & (1 << 5))) {
-                    offsprings.push_back(
-                            State(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields,
-                                  stateInfo ^ 0b11 | 0b00100000));
-                } else if (!(stateInfo & (1 << 6))) {
-                    offsprings.push_back(
-                            State(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields,
-                                  stateInfo ^ 0b11 | 0b01000000));
-                } else {
-                    offsprings.push_back(
-                            State(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields,
-                                  stateInfo ^ 0b11 | 0b10000000));
-                }
-            }
-
             break;
     }
     return offsprings;
 }
 
-State State::swapPieces(byte piece1, byte piece2) const {
-    return State(
-            (((((black >> piece1) & 1) ^ ((black >> piece2) & 1)) << piece1) |
-             ((((black >> piece1) & 1) ^ ((black >> piece2) & 1)) << piece2)) ^ black,
-            (((((white >> piece1) & 1) ^ ((white >> piece2) & 1)) << piece1) |
-             ((((white >> piece1) & 1) ^ ((white >> piece2) & 1)) << piece2)) ^ white,
-            (((((hp1 >> piece1) & 1) ^ ((hp1 >> piece2) & 1)) << piece1) |
-             ((((hp1 >> piece1) & 1) ^ ((hp1 >> piece2) & 1)) << piece2)) ^ hp1,
-            (((((hp2 >> piece1) & 1) ^ ((hp2 >> piece2) & 1)) << piece1) |
-             ((((hp2 >> piece1) & 1) ^ ((hp2 >> piece2) & 1)) << piece2)) ^ hp2,
-            (((((hp3 >> piece1) & 1) ^ ((hp3 >> piece2) & 1)) << piece1) |
-             ((((hp3 >> piece1) & 1) ^ ((hp3 >> piece2) & 1)) << piece2)) ^ hp3,
-            (((((hp4 >> piece1) & 1) ^ ((hp4 >> piece2) & 1)) << piece1) |
-             ((((hp4 >> piece1) & 1) ^ ((hp4 >> piece2) & 1)) << piece2)) ^ hp4,
-            (((((kings >> piece1) & 1) ^ ((kings >> piece2) & 1)) << piece1) |
-             ((((kings >> piece1) & 1) ^ ((kings >> piece2) & 1)) << piece2)) ^ kings,
-            (((((knights >> piece1) & 1) ^ ((knights >> piece2) & 1)) << piece1) |
-             ((((knights >> piece1) & 1) ^ ((knights >> piece2) & 1)) << piece2)) ^ knights,
-            (((((archers >> piece1) & 1) ^ ((archers >> piece2) & 1)) << piece1) |
-             ((((archers >> piece1) & 1) ^ ((archers >> piece2) & 1)) << piece2)) ^ archers,
-            (((((medics >> piece1) & 1) ^ ((medics >> piece2) & 1)) << piece1) |
-             ((((medics >> piece1) & 1) ^ ((medics >> piece2) & 1)) << piece2)) ^ medics,
-            (((((wizards >> piece1) & 1) ^ ((wizards >> piece2) & 1)) << piece1) |
-             ((((wizards >> piece1) & 1) ^ ((wizards >> piece2) & 1)) << piece2)) ^ wizards,
-            (((((shields >> piece1) & 1) ^ ((shields >> piece2) & 1)) << piece1) |
-             ((((shields >> piece1) & 1) ^ ((shields >> piece2) & 1)) << piece2)) ^ shields,
-            stateInfo ^ 0b10
-    );
+vector<byte> State::getBlackSwapMoves() const {
+    vector<byte> moves;
+    ushort swapTargets = (black | white) & ~(white & shields) & (hp1 | hp2 | hp3 | hp4);
+    for (auto &pair: swapPairs[black & active]) {
+        if ((1 << pair[1] & swapTargets) != 0) {
+            moves.push_back((pair[0] << 4) + pair[1]);
+        }
+    }
+    return moves;
 }
 
-State State::damage(ushort piece, byte skipMask) const {
-    return State(
-            black & (black ^ (piece & hp1)),
-            white & (white ^ (piece & hp1)),
-            (hp1 & (hp1 ^ piece)) | (piece & hp2),
-            (hp2 & (hp2 ^ piece)) | (piece & hp3),
-            (hp3 & (hp3 ^ piece)) | (piece & hp4),
-            hp4 & (hp4 ^ piece),
-            kings & (kings ^ (piece & hp1)),
-            knights & (knights ^ (piece & hp1)),
-            archers & (archers ^ (piece & hp1)),
-            medics & (medics ^ (piece & hp1)),
-            wizards & (wizards ^ (piece & hp1)),
-            shields & (shields ^ (piece & hp1)),
-            (stateInfo ^ 0b11) & skipMask
-    );
+vector<byte> State::getWhiteSwapMoves() const {
+    vector<byte> moves;
+    ushort swapTargets = (black | white) & ~(black & shields) & (hp1 | hp2 | hp3 | hp4);
+    for (auto &pair: swapPairs[white & active]) {
+        if ((1 << pair[1] & swapTargets) != 0) {
+            moves.push_back((pair[0] << 4) + pair[1]);
+        }
+    }
+    return moves;
 }
 
-State State::damage(ushort piece1, ushort piece2, byte skipMask) const {
-    return State(
-            black & (black ^ ((piece1 | piece2) & hp1)),
-            white & (white ^ ((piece1 | piece2) & hp1)),
-            (hp1 & (hp1 ^ (piece1 | piece2))) | ((piece1 | piece2) & hp2),
-            (hp2 & (hp2 ^ (piece1 | piece2))) | ((piece1 | piece2) & hp3),
-            (hp3 & (hp3 ^ (piece1 | piece2))) | ((piece1 | piece2) & hp4),
-            hp4 & (hp4 ^ (piece1 | piece2)),
-            kings & (kings ^ ((piece1 | piece2) & hp1)),
-            knights & (knights ^ ((piece1 | piece2) & hp1)),
-            archers & (archers ^ ((piece1 | piece2) & hp1)),
-            medics & (medics ^ ((piece1 | piece2) & hp1)),
-            wizards & (wizards ^ ((piece1 | piece2) & hp1)),
-            shields & (shields ^ ((piece1 | piece2) & hp1)),
-            (stateInfo ^ 0b11) & skipMask
-    );
+vector<int> State::getBlackActMoves() const {
+    vector<int> moves;
+    byte skips = (stateInfo >> 2 & 0b11) << 2;
+    byte medicIndex;
+    ushort wizardSwap;
+
+    // Double attack
+    if (active & black & knights) {
+        vector<array<byte, 2>> targets = knightTargetPairs[
+                compressedKnightTargets[
+                        meleeTargets[knights & active & black] & white & (hp1 | hp2 | hp3 | hp4)
+                ][
+                        compressedKnights[active & black & knights]
+                ]
+        ][compressedKnights[active & black & knights]];
+        for (array<byte, 2> &target: targets) {
+            moves.push_back((((1 << target[0]) + (1 << target[1])) << 4) + 0b0010 + skips);
+        }
+    }
+
+    // Heal
+    ushort medic = active & black & medics;
+    if (medic) {
+        medicIndex = idx[medic];
+        ushort healTargets = black & (~hp3 | kings | shields) & (hp1 | hp2 | hp3);
+        ushort medicUp = (medic << 4) & healTargets;
+        ushort medicDown = (medic >> 4) & healTargets;
+        ushort medicLeft = medicIndex % 4 != 0 ? (medic >> 1) & healTargets : 0;
+        ushort medicRight = medicIndex % 4 != 3 ? (medic << 1) & healTargets : 0;
+        if (medicUp && medicDown && medicLeft && medicRight) {
+            moves.push_back(((medicUp | medicDown | medicLeft | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicUp && medicDown && medicLeft) {
+            moves.push_back(((medicUp | medicDown | medicLeft) << 4) + 0b0011 + skips);
+        }
+        if (medicUp && medicDown && medicRight) {
+            moves.push_back(((medicUp | medicDown | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicUp && medicLeft && medicRight) {
+            moves.push_back(((medicUp | medicLeft | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicDown && medicLeft && medicRight) {
+            moves.push_back(((medicDown | medicLeft | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicUp && medicDown) {
+            moves.push_back(((medicUp | medicDown) << 4) + 0b0011 + skips);
+        }
+        if (medicUp && medicLeft) {
+            moves.push_back(((medicUp | medicLeft) << 4) + 0b0011 + skips);
+        }
+        if (medicUp && medicRight) {
+            moves.push_back(((medicUp | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicDown && medicLeft) {
+            moves.push_back(((medicDown | medicLeft) << 4) + 0b0011 + skips);
+        }
+        if (medicDown && medicRight) {
+            moves.push_back(((medicDown | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicLeft && medicRight) {
+            moves.push_back(((medicLeft | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicUp) {
+            moves.push_back((medicUp << 4) + 0b0011 + skips);
+        }
+        if (medicDown) {
+            moves.push_back((medicDown << 4) + 0b0011 + skips);
+        }
+        if (medicLeft) {
+            moves.push_back((medicLeft << 4) + 0b0011 + skips);
+        }
+        if (medicRight) {
+            moves.push_back((medicRight << 4) + 0b0011 + skips);
+        }
+    }
+
+    // Single attack
+    ushort underAttack = (meleeTargets[(kings | knights | archers) & active & black] |
+                          archerTargets[archers & active & black][idx[shields & white & (hp1 | hp2 | hp3 | hp4)]])
+                         & white & (hp1 | hp2 | hp3 | hp4);
+    for (byte i = 0; underAttack != 0; underAttack >>= 1) {
+        if (underAttack & 1) {
+            moves.push_back((1 << i << 4) + 0b0010 + skips);
+        }
+        i++;
+    }
+
+    // Teleport
+    if (active & black & wizards) {
+        wizardSwap = black & ~wizards & (hp1 | hp2 | hp3 | hp4);
+        for (byte i = 0; wizardSwap != 0; wizardSwap >>= 1) {
+            if (wizardSwap & 1) {
+                moves.push_back((idx[black & wizards] << 8) + (i << 4) + 0b0001 + skips);
+            }
+            i++;
+        }
+    }
+
+    // Skip
+    moves.push_back(0);
+
+    return moves;
 }
 
-State State::heal(ushort piece, byte skipMask) const {
-    return State(
-            black,
-            white,
-            hp1 & ~piece,
-            hp2 & ~(hp2 & piece) | (hp1 & piece),
-            hp3 & ~(hp3 & piece) | (hp2 & piece),
-            hp4 | (hp3 & piece),
-            kings,
-            knights,
-            archers,
-            medics,
-            wizards,
-            shields,
-            (stateInfo ^ 0b11) & skipMask
-    );
-}
+vector<int> State::getWhiteActMoves() const {
+    vector<int> moves;
+    byte skips = (stateInfo >> 4 & 0b11) << 2;
+    byte medicIndex;
+    ushort wizardSwap;
 
-State State::heal(ushort piece1, ushort piece2, byte skipMask) const {
-    return State(
-            black,
-            white,
-            hp1 & ~piece1 & ~piece2,
-            hp2 & ~(hp2 & (piece1 | piece2)) | (hp1 & (piece1 | piece2)),
-            hp3 & ~(hp3 & (piece1 | piece2)) | (hp2 & (piece1 | piece2)),
-            hp4 | (hp3 & (piece1 | piece2)),
-            kings,
-            knights,
-            archers,
-            medics,
-            wizards,
-            shields,
-            (stateInfo ^ 0b11) & skipMask
-    );
-}
+    // Double attack
+    if (active & white & knights) {
+        vector<array<byte, 2>> targets = knightTargetPairs[
+                compressedKnightTargets[
+                        meleeTargets[knights & active & white] & black & (hp1 | hp2 | hp3 | hp4)
+                ][
+                        compressedKnights[active & white & knights]
+                ]
+        ][compressedKnights[active & white & knights]];
+        for (auto &target: targets) {
+            moves.push_back((((1 << target[0]) + (1 << target[1])) << 4) + 0b0010 + skips);
+        }
+    }
 
-State State::heal(ushort piece1, ushort piece2, ushort piece3, byte skipMask) const {
-    return State(
-            black,
-            white,
-            hp1 & ~piece1 & ~piece2 & ~piece3,
-            hp2 & ~(hp2 & (piece1 | piece2 | piece3)) | (hp1 & (piece1 | piece2 | piece3)),
-            hp3 & ~(hp3 & (piece1 | piece2 | piece3)) | (hp2 & (piece1 | piece2 | piece3)),
-            hp4 | (hp3 & (piece1 | piece2 | piece3)),
-            kings,
-            knights,
-            archers,
-            medics,
-            wizards,
-            shields,
-            (stateInfo ^ 0b11) & skipMask
-    );
-}
+    // Heal
+    ushort medic = active & white & medics;
+    if (medic) {
+        medicIndex = idx[medic];
+        ushort healTargets = white & (~hp3 | kings | shields) & (hp1 | hp2 | hp3);
+        ushort medicUp = (medic << 4) & healTargets;
+        ushort medicDown = (medic >> 4) & healTargets;
+        ushort medicLeft = medicIndex % 4 != 0 ? (medic >> 1) & healTargets : 0;
+        ushort medicRight = medicIndex % 4 != 3 ? (medic << 1) & healTargets : 0;
+        if (medicUp && medicDown && medicLeft && medicRight) {
+            moves.push_back(((medicUp | medicDown | medicLeft | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicUp && medicDown && medicLeft) {
+            moves.push_back(((medicUp | medicDown | medicLeft) << 4) + 0b0011 + skips);
+        }
+        if (medicUp && medicDown && medicRight) {
+            moves.push_back(((medicUp | medicDown | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicUp && medicLeft && medicRight) {
+            moves.push_back(((medicUp | medicLeft | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicDown && medicLeft && medicRight) {
+            moves.push_back(((medicDown | medicLeft | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicUp && medicDown) {
+            moves.push_back(((medicUp | medicDown) << 4) + 0b0011 + skips);
+        }
+        if (medicUp && medicLeft) {
+            moves.push_back(((medicUp | medicLeft) << 4) + 0b0011 + skips);
+        }
+        if (medicUp && medicRight) {
+            moves.push_back(((medicUp | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicDown && medicLeft) {
+            moves.push_back(((medicDown | medicLeft) << 4) + 0b0011 + skips);
+        }
+        if (medicDown && medicRight) {
+            moves.push_back(((medicDown | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicLeft && medicRight) {
+            moves.push_back(((medicLeft | medicRight) << 4) + 0b0011 + skips);
+        }
+        if (medicUp) {
+            moves.push_back((medicUp << 4) + 0b0011 + skips);
+        }
+        if (medicDown) {
+            moves.push_back((medicDown << 4) + 0b0011 + skips);
+        }
+        if (medicLeft) {
+            moves.push_back((medicLeft << 4) + 0b0011 + skips);
+        }
+        if (medicRight) {
+            moves.push_back((medicRight << 4) + 0b0011 + skips);
+        }
+    }
 
-State State::heal(ushort piece1, ushort piece2, ushort piece3, ushort piece4, byte skipMask) const {
-    return State(
-            black,
-            white,
-            hp1 & ~piece1 & ~piece2 & ~piece3 & ~piece4,
-            hp2 & ~(hp2 & (piece1 | piece2 | piece3 | piece4)) | (hp1 & (piece1 | piece2 | piece3 | piece4)),
-            hp3 & ~(hp3 & (piece1 | piece2 | piece3 | piece4)) | (hp2 & (piece1 | piece2 | piece3 | piece4)),
-            hp4 | (hp3 & (piece1 | piece2 | piece3 | piece4)),
-            kings,
-            knights,
-            archers,
-            medics,
-            wizards,
-            shields,
-            (stateInfo ^ 0b11) & skipMask
-    );
-}
+    // Single attack
+    ushort underAttack = (meleeTargets[(kings | knights | archers) & active & white] |
+                          archerTargets[archers & active & white][idx[shields & black & (hp1 | hp2 | hp3 | hp4)]])
+                         & black & (hp1 | hp2 | hp3 | hp4);
+    for (byte i = 0; underAttack != 0; underAttack >>= 1) {
+        if (underAttack & 1) {
+            moves.push_back((1 << i << 4) + 0b0010 + skips);
+        }
+        i++;
+    }
 
-State State::wizardSwap(byte piece1, byte piece2, byte skipMask) const {
-    return State(
-            (((((black >> piece1) & 1) ^ ((black >> piece2) & 1)) << piece1) |
-             ((((black >> piece1) & 1) ^ ((black >> piece2) & 1)) << piece2)) ^ black,
-            (((((white >> piece1) & 1) ^ ((white >> piece2) & 1)) << piece1) |
-             ((((white >> piece1) & 1) ^ ((white >> piece2) & 1)) << piece2)) ^ white,
-            (((((hp1 >> piece1) & 1) ^ ((hp1 >> piece2) & 1)) << piece1) |
-             ((((hp1 >> piece1) & 1) ^ ((hp1 >> piece2) & 1)) << piece2)) ^ hp1,
-            (((((hp2 >> piece1) & 1) ^ ((hp2 >> piece2) & 1)) << piece1) |
-             ((((hp2 >> piece1) & 1) ^ ((hp2 >> piece2) & 1)) << piece2)) ^ hp2,
-            (((((hp3 >> piece1) & 1) ^ ((hp3 >> piece2) & 1)) << piece1) |
-             ((((hp3 >> piece1) & 1) ^ ((hp3 >> piece2) & 1)) << piece2)) ^ hp3,
-            (((((hp4 >> piece1) & 1) ^ ((hp4 >> piece2) & 1)) << piece1) |
-             ((((hp4 >> piece1) & 1) ^ ((hp4 >> piece2) & 1)) << piece2)) ^ hp4,
-            (((((kings >> piece1) & 1) ^ ((kings >> piece2) & 1)) << piece1) |
-             ((((kings >> piece1) & 1) ^ ((kings >> piece2) & 1)) << piece2)) ^ kings,
-            (((((knights >> piece1) & 1) ^ ((knights >> piece2) & 1)) << piece1) |
-             ((((knights >> piece1) & 1) ^ ((knights >> piece2) & 1)) << piece2)) ^ knights,
-            (((((archers >> piece1) & 1) ^ ((archers >> piece2) & 1)) << piece1) |
-             ((((archers >> piece1) & 1) ^ ((archers >> piece2) & 1)) << piece2)) ^ archers,
-            (((((medics >> piece1) & 1) ^ ((medics >> piece2) & 1)) << piece1) |
-             ((((medics >> piece1) & 1) ^ ((medics >> piece2) & 1)) << piece2)) ^ medics,
-            (((((wizards >> piece1) & 1) ^ ((wizards >> piece2) & 1)) << piece1) |
-             ((((wizards >> piece1) & 1) ^ ((wizards >> piece2) & 1)) << piece2)) ^ wizards,
-            (((((shields >> piece1) & 1) ^ ((shields >> piece2) & 1)) << piece1) |
-             ((((shields >> piece1) & 1) ^ ((shields >> piece2) & 1)) << piece2)) ^ shields,
-            (stateInfo ^ 0b11) & skipMask
-    );
+    // Teleport
+    if (active & white & wizards) {
+        wizardSwap = white & ~wizards & (hp1 | hp2 | hp3 | hp4);
+        for (byte i = 0; wizardSwap != 0; wizardSwap >>= 1) {
+            if (wizardSwap & 1) {
+                moves.push_back((idx[white & wizards] << 8) + (i << 4) + 0b0001 + skips);
+            }
+            i++;
+        }
+    }
+
+    // Skip
+    moves.push_back(0);
+
+    return moves;
 }

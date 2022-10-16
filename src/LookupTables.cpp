@@ -1,10 +1,12 @@
 #include "LookupTables.h"
 
+using std::bitset;
+
 bool setup = false;
 
 byte bitCount[65536];
 
-vector<array<byte, 2>> switchPairs[65536];
+vector<array<byte, 2>> swapPairs[65536];
 
 ushort meleeTargets[65536];
 
@@ -25,22 +27,22 @@ void setBitCount() {
     }
 }
 
-void setSwitchPairs() {
+void setSwapPairs() {
     for (int i = 0; i < 65536; i++) {
-        switchPairs[i] = vector<array<byte, 2>>();
+        swapPairs[i] = vector<array<byte, 2>>();
         for (int j = 0; j < 16; j++) {
             if ((1 << j) & i) {
                 if (j + 4 < 16) {
-                    switchPairs[i].push_back(array<byte, 2>{(byte) j, (byte) (j + 4)});
+                    swapPairs[i].push_back(array<byte, 2>{(byte) j, (byte) (j + 4)});
                 }
                 if (!(1 << (j - 4) & i) && j - 4 > -1) {
-                    switchPairs[i].push_back(array<byte, 2>{(byte) j, (byte) (j - 4)});
+                    swapPairs[i].push_back(array<byte, 2>{(byte) j, (byte) (j - 4)});
                 }
                 if (j % 4 != 3) {
-                    switchPairs[i].push_back(array<byte, 2>{(byte) j, (byte) (j + 1)});
+                    swapPairs[i].push_back(array<byte, 2>{(byte) j, (byte) (j + 1)});
                 }
                 if (!(1 << (j - 1) & i) && j % 4 != 0) {
-                    switchPairs[i].push_back(array<byte, 2>{(byte) j, (byte) (j - 1)});
+                    swapPairs[i].push_back(array<byte, 2>{(byte) j, (byte) (j - 1)});
                 }
             }
         }
@@ -112,7 +114,7 @@ void setCompressedKnights() {
         compressedKnights[1 << i] = i * 16 + i;
     }
     for (int i = 0; i < 16; i++) {
-        for (int j = i + 1; i < 16; i++) {
+        for (int j = i + 1; j < 16; j++) {
             compressedKnights[(1 << i) + (1 << j)] = i * 16 + j;
         }
     }
@@ -167,13 +169,13 @@ void setKnightTargetPairs() {
             if (i & (1 << 3) && i & (1 << 1)) {
                 knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (secondKnight + 4), (byte) (secondKnight - 1)});
             }
-            if (i & (1 << 3) && i & (1 << 0)) {
+            if (i & (1 << 3) && i & (1 << 0) && firstKnight - secondKnight != 5) {
                 knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (secondKnight + 4), (byte) (secondKnight + 1)});
             }
             if (i & (1 << 2) && i & (1 << 1)) {
                 knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (secondKnight - 4), (byte) (secondKnight - 1)});
             }
-            if (i & (1 << 2) && i & (1 << 0)) {
+            if (i & (1 << 2) && i & (1 << 0) && secondKnight - firstKnight != 3) {
                 knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (secondKnight - 4), (byte) (secondKnight + 1)});
             }
             if (i & (1 << 1) && i & (1 << 0)) {
@@ -198,7 +200,7 @@ void setUp() {
     }
     cout << "Setting up lookup tables..." << endl;
     setBitCount();
-    setSwitchPairs();
+    setSwapPairs();
     setMeleeTargets();
     setArcherTargets();
     setCompressedKnights();
