@@ -1,24 +1,27 @@
 #include "LookupTables.h"
 
-using std::bitset;
+using std::bitset, std::mt19937, std::uniform_int_distribution;
 
 bool setup = false;
 
-byte bitCount[65536];
+uint8 bitCount[65536];
 
-vector<array<byte, 2>> swapPairs[65536];
+vector<array<uint8, 2>> swapPairs[65536];
 
-ushort meleeTargets[65536];
+uint16 meleeTargets[65536];
 
-ushort archerTargets[65536][17];
+uint16 archerTargets[65536][17];
 
-byte compressedKnights[65536];
+uint8 compressedKnights[65536];
 
-byte compressedKnightTargets[65536][256];
+uint8 compressedKnightTargets[65536][256];
 
-vector<array<byte, 2>> knightTargetPairs[256][256];
+vector<array<uint8, 2>> knightTargetPairs[256][256];
 
-byte idx[65536];
+uint8 idx[65536];
+
+uint32 pieceHashes[64];
+uint32 stateInfoHashes[64];
 
 void setBitCount() {
     bitCount[0] = 0;
@@ -29,20 +32,20 @@ void setBitCount() {
 
 void setSwapPairs() {
     for (int i = 0; i < 65536; i++) {
-        swapPairs[i] = vector<array<byte, 2>>();
+        swapPairs[i] = vector<array<uint8, 2>>();
         for (int j = 0; j < 16; j++) {
             if ((1 << j) & i) {
                 if (j + 4 < 16) {
-                    swapPairs[i].push_back(array<byte, 2>{(byte) j, (byte) (j + 4)});
+                    swapPairs[i].push_back(array<uint8, 2>{(uint8) j, (uint8) (j + 4)});
                 }
                 if (!(1 << (j - 4) & i) && j - 4 > -1) {
-                    swapPairs[i].push_back(array<byte, 2>{(byte) j, (byte) (j - 4)});
+                    swapPairs[i].push_back(array<uint8, 2>{(uint8) j, (uint8) (j - 4)});
                 }
                 if (j % 4 != 3) {
-                    swapPairs[i].push_back(array<byte, 2>{(byte) j, (byte) (j + 1)});
+                    swapPairs[i].push_back(array<uint8, 2>{(uint8) j, (uint8) (j + 1)});
                 }
                 if (!(1 << (j - 1) & i) && j % 4 != 0) {
-                    swapPairs[i].push_back(array<byte, 2>{(byte) j, (byte) (j - 1)});
+                    swapPairs[i].push_back(array<uint8, 2>{(uint8) j, (uint8) (j - 1)});
                 }
             }
         }
@@ -51,7 +54,7 @@ void setSwapPairs() {
 
 void setMeleeTargets() {
     for (int i = 0; i < 65536; i++) {
-        ushort map = 0;
+        uint16 map = 0;
         for (int cell = 0; cell < 16; cell++) {
             if ((i & (1 << cell)) == 0) continue;
             int row = cell / 4;
@@ -67,7 +70,7 @@ void setMeleeTargets() {
 void setArcherTargets() {
     for (int i = 0; i < 65536; i++) {
         for (int shield = 0; shield < 17; shield++) {
-            ushort map = 0;
+            uint16 map = 0;
             for (int cell = 0; cell < 16; cell++) {
                 if ((i & (1 << cell)) == 0) continue;
                 int row = cell / 4;
@@ -123,8 +126,8 @@ void setCompressedKnights() {
 void setCompressedKnightTargets() {
     for (int i = 0; i < 65536; i++) {
         for (int j = 0; j < 256; j++) {
-            byte firstKnight = j % 16;
-            byte secondKnight = j / 16;
+            uint8 firstKnight = j % 16;
+            uint8 secondKnight = j / 16;
             compressedKnightTargets[i][j] =
                     (firstKnight + 4 < 16 && (1 << (firstKnight + 4)) & i ? 1 << 7 : 0)
                     + (firstKnight - 4 > -1 && (1 << (firstKnight - 4)) & i ? 1 << 6 : 0)
@@ -142,44 +145,44 @@ void setCompressedKnightTargets() {
 void setKnightTargetPairs() {
     for (int i = 0; i < 256; i++) {
         for (int j = 0; j < 256; j++) {
-            knightTargetPairs[i][j] = vector<array<byte, 2>>();
-            byte firstKnight = j % 16;
-            byte secondKnight = j / 16;
+            knightTargetPairs[i][j] = vector<array<uint8, 2>>();
+            uint8 firstKnight = j % 16;
+            uint8 secondKnight = j / 16;
             if (i & (1 << 7) && i & (1 << 6)) {
-                knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (firstKnight + 4), (byte) (firstKnight - 4)});
+                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (firstKnight + 4), (uint8) (firstKnight - 4)});
             }
             if (i & (1 << 7) && i & (1 << 5)) {
-                knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (firstKnight + 4), (byte) (firstKnight - 1)});
+                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (firstKnight + 4), (uint8) (firstKnight - 1)});
             }
             if (i & (1 << 7) && i & (1 << 4) && secondKnight - firstKnight != 5) {
-                knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (firstKnight + 4), (byte) (firstKnight + 1)});
+                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (firstKnight + 4), (uint8) (firstKnight + 1)});
             }
             if (i & (1 << 6) && i & (1 << 5)) {
-                knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (firstKnight - 4), (byte) (firstKnight - 1)});
+                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (firstKnight - 4), (uint8) (firstKnight - 1)});
             }
             if (i & (1 << 6) && i & (1 << 4) && firstKnight - secondKnight != 3) {
-                knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (firstKnight - 4), (byte) (firstKnight + 1)});
+                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (firstKnight - 4), (uint8) (firstKnight + 1)});
             }
             if (i & (1 << 5) && i & (1 << 4)) {
-                knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (firstKnight - 1), (byte) (firstKnight + 1)});
+                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (firstKnight - 1), (uint8) (firstKnight + 1)});
             }
             if (i & (1 << 3) && i & (1 << 2)) {
-                knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (secondKnight + 4), (byte) (secondKnight - 4)});
+                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (secondKnight + 4), (uint8) (secondKnight - 4)});
             }
             if (i & (1 << 3) && i & (1 << 1)) {
-                knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (secondKnight + 4), (byte) (secondKnight - 1)});
+                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (secondKnight + 4), (uint8) (secondKnight - 1)});
             }
             if (i & (1 << 3) && i & (1 << 0) && firstKnight - secondKnight != 5) {
-                knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (secondKnight + 4), (byte) (secondKnight + 1)});
+                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (secondKnight + 4), (uint8) (secondKnight + 1)});
             }
             if (i & (1 << 2) && i & (1 << 1)) {
-                knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (secondKnight - 4), (byte) (secondKnight - 1)});
+                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (secondKnight - 4), (uint8) (secondKnight - 1)});
             }
             if (i & (1 << 2) && i & (1 << 0) && secondKnight - firstKnight != 3) {
-                knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (secondKnight - 4), (byte) (secondKnight + 1)});
+                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (secondKnight - 4), (uint8) (secondKnight + 1)});
             }
             if (i & (1 << 1) && i & (1 << 0)) {
-                knightTargetPairs[i][j].push_back(array<byte, 2>{(byte) (secondKnight - 1), (byte) (secondKnight + 1)});
+                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (secondKnight - 1), (uint8) (secondKnight + 1)});
             }
         }
     }
@@ -190,6 +193,17 @@ void setIndex() {
         if ((i & (i - 1)) != 0) continue;
         int j = i;
         for (; j != 1; idx[i]++) j >>= 1;
+    }
+}
+
+void setHashes() {
+    mt19937 generator(0); // NOLINT(cert-msc51-cpp)
+    uniform_int_distribution<uint32> range(0, UINT_MAX);
+    for (uint32 & pieceHash : pieceHashes) {
+        pieceHash = range(generator);
+    }
+    for (uint32 &stateInfoHash : stateInfoHashes) {
+        stateInfoHash = range(generator);
     }
 }
 
@@ -207,6 +221,7 @@ void setUp() {
     setCompressedKnightTargets();
     setKnightTargetPairs();
     setIndex();
+    setHashes();
     cout << "Lookup tables set up." << endl;
     setup = true;
 }

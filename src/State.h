@@ -6,6 +6,8 @@
 #include <vector>
 #include <iostream>
 #include <utility>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "Common.h"
 #include "Display.h"
@@ -14,26 +16,26 @@
 #include "Phase.h"
 #include "Piece.h"
 #include "Side.h"
+#include "StateRecord.h"
 #include "Strategy.h"
 
-using std::vector, std::pair, std::string;
+using std::vector, std::pair, std::string, std::unordered_map, std::unordered_set;
 
 struct State {
 
-public:
-    ushort black;
-    ushort white;
-    ushort active;
-    ushort hp1;
-    ushort hp2;
-    ushort hp3;
-    ushort hp4;
-    ushort kings;
-    ushort knights;
-    ushort archers;
-    ushort medics;
-    ushort wizards;
-    ushort shields;
+    uint16 black;
+    uint16 white;
+    uint16 active;
+    uint16 hp1;
+    uint16 hp2;
+    uint16 hp3;
+    uint16 hp4;
+    uint16 kings;
+    uint16 knights;
+    uint16 archers;
+    uint16 medics;
+    uint16 wizards;
+    uint16 shields;
 
     /// 1 BYTE
     /// [ 0 0 ] [ 0 0 ] [ 0 ] [ 0 ]
@@ -42,17 +44,22 @@ public:
     /// 01      01      Swap  Black
     /// 10      10      Act   White
     /// 11      11
-    byte stateInfo;
+    uint8 stateInfo;
 
-    State(Piece *board[4][4], Side side, Phase phase, byte blackSkips, byte whiteSkips);
+    State(Piece *board[4][4], Side side, Phase phase, uint8 blackSkips, uint8 whiteSkips);
 
-    float search(byte depth, Strategy strategy);
+    State(uint16 black, uint16 white,
+          uint16 hp1, uint16 hp2, uint16 hp3, uint16 hp4,
+          uint16 kings, uint16 knights, uint16 archers, uint16 medics, uint16 wizards, uint16 shields,
+          uint8 stateInfo);
+
+    float search(uint8 depth, Strategy strategy);
 
     [[nodiscard]] vector<pair<State, string>> getOffsprings() const;
 
-    [[nodiscard]] vector<byte> getBlackSwapMoves() const;
+    [[nodiscard]] vector<uint8> getBlackSwapMoves() const;
 
-    [[nodiscard]] vector<byte> getWhiteSwapMoves() const;
+    [[nodiscard]] vector<uint8> getWhiteSwapMoves() const;
 
     [[nodiscard]] vector<int> getBlackActMoves() const;
 
@@ -60,11 +67,7 @@ public:
 
     static long long stateCount;
 
-//private:
-    State(ushort black, ushort white,
-          ushort hp1, ushort hp2, ushort hp3, ushort hp4,
-          ushort kings, ushort knights, ushort archers, ushort medics, ushort wizards, ushort shields,
-          byte stateInfo);
+    static unordered_set<StateRecord> history;
 
     [[nodiscard]] int endGameScore() const;
 
@@ -77,43 +80,70 @@ public:
     /// beta  - lowest  score white can guarantee
     ///
     /// __alpha_____real_____beta__
-    float abBlackSwap(float alpha, float beta, byte depth);
+    float abBlackSwap(float alpha, float beta, uint8 depth);
 
-    float abBlackSwap(byte depth);
+    float abBlackSwap(uint8 depth);
 
-    float abBlackAct(float alpha, float beta, byte depth);
+    float abBlackAct(float alpha, float beta, uint8 depth);
 
-    float abBlackAct(byte depth);
+    float abBlackAct(uint8 depth);
 
-    float abWhiteSwap(float alpha, float beta, byte depth);
+    float abWhiteSwap(float alpha, float beta, uint8 depth);
 
-    float abWhiteSwap(byte depth);
+    float abWhiteSwap(uint8 depth);
 
-    float abWhiteAct(float alpha, float beta, byte depth);
+    float abWhiteAct(float alpha, float beta, uint8 depth);
 
-    float abWhiteAct(byte depth);
+    float abWhiteAct(uint8 depth);
 
-#pragma region MiniMax
+    float mmBlackSwap(uint8 depth);
 
-    float mmBlackSwap(byte depth);
+    float mmBlackAct(uint8 depth);
 
-    float mmBlackAct(byte depth);
+    float mmWhiteSwap(uint8 depth);
 
-    float mmWhiteSwap(byte depth);
+    float mmWhiteAct(uint8 depth);
 
-    float mmWhiteAct(byte depth);
+    void swap(uint8 piece1, uint8 piece2);
 
-#pragma endregion
+    void updateExtraBitboards();
 
-    inline void swap(byte piece1, byte piece2);
+    void makeSwap(uint8 swapMask);
 
-    inline void makeSwap(byte swapMask);
+    /// actMask:
+    ///
+    /// type:
+    /// 00 - skip
+    /// 01 - wizard swap
+    /// 10 - attack
+    /// 11 - heal
+    ///
+    /// skip
+    /// [ 0 ]
+    /// type
+    ///
+    /// wizard swap
+    /// [ 0 0 0 0 ] [ 0 0 0 0 ] [ 0 0 ] [ 0 0 ]
+    /// first index second index skips  type
+    ///
+    /// damage
+    /// [ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ] [ 0 0 ] [ 0 0 ]
+    /// mask                                skips   type
+    ///
+    /// heal
+    /// [ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ] [ 0 0 ] [ 0 0 ]
+    /// mask                                skips   type
 
-    inline void makeBlackAct(int actMask);
+    void makeBlackAct(int actMask);
 
-    inline void makeWhiteAct(int actMask);
+    void makeWhiteAct(int actMask);
 
-    inline void unmakeBlackAct(int actMask);
+    void unmakeBlackAct(int actMask);
 
-    inline void unmakeWhiteAct(int actMask);
+    void unmakeWhiteAct(int actMask);
+
+    [[nodiscard]] string display() const;
+
+    /// Call after each search.
+    static void resetGlobals();
 };

@@ -10,10 +10,10 @@
 
 using std::string;
 
-string cellToString(byte cell);
+string cellToString(uint8 cell);
 
 string displayAct(int move);
 
-string displaySwap(byte move);
+string displaySwap(uint8 move);
 
 void printArcherPatterns();

@@ -3,7 +3,6 @@
 #include <algorithm>
 
 #include "../src/State.h"
-#include "../src/StateDisplay.h"
 
 #include "catch.hpp"
 
@@ -23,7 +22,7 @@ TEST_CASE("Minimax depth 1", "[SearchTests]") {
     auto state = State(board, Side::Black, Phase::Swap, 0, 0);
     state.search(1, Strategy::MiniMax);
     CHECK(State::stateCount == 14);
-    State::stateCount = 0;
+    State::resetGlobals();
 }
 
 TEST_CASE("Minimax depth 2", "[SearchTests]") {
@@ -36,8 +35,8 @@ TEST_CASE("Minimax depth 2", "[SearchTests]") {
     };
     auto state = State(board, Side::Black, Phase::Swap, 0, 0);
     state.search(2, Strategy::MiniMax);
-    CHECK(State::stateCount == 187);
-    State::stateCount = 0;
+    CHECK(State::stateCount == 175);
+    State::resetGlobals();
 }
 
 TEST_CASE("Minimax depth 3", "[SearchTests]") {
@@ -50,8 +49,8 @@ TEST_CASE("Minimax depth 3", "[SearchTests]") {
     };
     auto state = State(board, Side::Black, Phase::Swap, 0, 0);
     state.search(3, Strategy::MiniMax);
-    CHECK(State::stateCount == 2371);
-    State::stateCount = 0;
+    CHECK(State::stateCount == 2062);
+    State::resetGlobals();
 }
 
 TEST_CASE("Minimax depth 4", "[SearchTests]") {
@@ -64,8 +63,8 @@ TEST_CASE("Minimax depth 4", "[SearchTests]") {
     };
     auto state = State(board, Side::Black, Phase::Swap, 0, 0);
     state.search(4, Strategy::MiniMax);
-    CHECK(State::stateCount == 34684);
-    State::stateCount = 0;
+    CHECK(State::stateCount == 25689);
+    State::resetGlobals();
 }
 
 TEST_CASE("Minimax depth 5", "[SearchTests]") {
@@ -78,8 +77,8 @@ TEST_CASE("Minimax depth 5", "[SearchTests]") {
     };
     auto state = State(board, Side::Black, Phase::Swap, 0, 0);
     state.search(5, Strategy::MiniMax);
-    CHECK(State::stateCount == 464772);
-    State::stateCount = 0;
+    CHECK(State::stateCount == 304020);
+    State::resetGlobals();
 }
 
 TEST_CASE("Minimax depth 6", "[SearchTests]") {
@@ -92,8 +91,22 @@ TEST_CASE("Minimax depth 6", "[SearchTests]") {
     };
     auto state = State(board, Side::Black, Phase::Swap, 0, 0);
     state.search(6, Strategy::MiniMax);
-    CHECK(State::stateCount == 7199143);
-    State::stateCount = 0;
+    CHECK(State::stateCount == 3951293);
+    State::resetGlobals();
+}
+
+TEST_CASE("Island rule test", "[SearchTests]") {
+    setUp();
+    Piece *board[4][4] = {
+            {k1 a1 __ __},
+            {__ W1 __ __},
+            {S3 N3 N3 __},
+            {K4 A3 M3 A3}
+    };
+    auto state = State(board, Side::White, Phase::Act, 0, 0);
+    auto result = state.search(6, Strategy::MiniMax);
+    CHECK(result == 0);
+    State::resetGlobals();
 }
 
 TEST_CASE("Swap test", "[OffspringTests]") {
@@ -105,12 +118,13 @@ TEST_CASE("Swap test", "[OffspringTests]") {
             {K4 N3 a3 W3}
     };
     auto state = State(board, Side::White, Phase::Swap, 0, 0);
-    vector<byte> moves = state.getWhiteSwapMoves();
+    vector<uint8> moves = state.getWhiteSwapMoves();
     vector<State> offsprings = vector<State>();
     for (auto move : moves) {
         State newState = state;
         newState.makeSwap(move);
-        cout << displayState(newState) << endl;
+        CHECK(newState.hash != state.hash);
+        cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
 
@@ -150,7 +164,8 @@ TEST_CASE("Swap test", "[OffspringTests]") {
 
     for (int i = 0; i < 4; i++) {
         offsprings[i].makeSwap(moves[i]);
-        CHECK(displayState(offsprings[i]) == displayState(state));
+        CHECK(offsprings[i].display() == state.display());
+        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -163,12 +178,13 @@ TEST_CASE("Swap test 2", "[OffspringTests]") {
             {K4 A3 M3 A3}
     };
     auto state = State(board, Side::Black, Phase::Swap, 0, 0);
-    vector<byte> moves = state.getBlackSwapMoves();
+    vector<uint8> moves = state.getBlackSwapMoves();
     vector<State> offsprings = vector<State>();
     for (auto move : moves) {
         State newState = state;
         newState.makeSwap(move);
-        cout << displayState(newState) << endl;
+        CHECK(newState.hash != state.hash);
+        cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
     CHECK((int) offsprings.size() == 13);
@@ -188,7 +204,8 @@ TEST_CASE("Knight test", "[OffspringTests]") {
     for (auto move : moves) {
         State newState = state;
         newState.makeBlackAct(move);
-        cout << displayState(newState) << endl;
+        CHECK(newState.hash != state.hash);
+        cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
     CHECK((int) offsprings.size() == 8);
@@ -259,7 +276,8 @@ TEST_CASE("Knight test", "[OffspringTests]") {
 
     for (int i = 0; i < 8; i++) {
         offsprings[i].unmakeBlackAct(moves[i]);
-        CHECK(displayState(offsprings[i]) == displayState(state));
+        CHECK(offsprings[i].display() == state.display());
+        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -277,7 +295,8 @@ TEST_CASE("Archer test", "[OffspringTests]") {
     for (auto move : moves) {
         State newState = state;
         newState.makeBlackAct(move);
-        cout << displayState(newState) << endl;
+        CHECK(newState.hash != state.hash);
+        cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
     CHECK((int) offsprings.size() == 5);
@@ -324,7 +343,8 @@ TEST_CASE("Archer test", "[OffspringTests]") {
 
     for (int i = 0; i < 5; i++) {
         offsprings[i].unmakeBlackAct(moves[i]);
-        CHECK(displayState(offsprings[i]) == displayState(state));
+        CHECK(offsprings[i].display() == state.display());
+        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -342,7 +362,8 @@ TEST_CASE("Archer test 2", "[OffspringTests]") {
     for (auto move : moves) {
         State newState = state;
         newState.makeBlackAct(move);
-        cout << displayState(newState) << endl;
+        CHECK(newState.hash != state.hash);
+        cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
     CHECK((int) offsprings.size() == 4);
@@ -381,7 +402,8 @@ TEST_CASE("Archer test 2", "[OffspringTests]") {
 
     for (int i = 0; i < 4; i++) {
         offsprings[i].unmakeBlackAct(moves[i]);
-        CHECK(displayState(offsprings[i]) == displayState(state));
+        CHECK(offsprings[i].display() == state.display());
+        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -399,7 +421,8 @@ TEST_CASE("Medic test", "[OffspringTests]") {
     for (auto move : moves) {
         State newState = state;
         newState.makeBlackAct(move);
-        cout << displayState(newState) << endl;
+        CHECK(newState.hash != state.hash);
+        cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
     CHECK((int) offsprings.size() == 8);
@@ -470,7 +493,8 @@ TEST_CASE("Medic test", "[OffspringTests]") {
 
     for (int i = 0; i < 8; i++) {
         offsprings[i].unmakeBlackAct(moves[i]);
-        CHECK(displayState(offsprings[i]) == displayState(state));
+        CHECK(offsprings[i].display() == state.display());
+        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -488,7 +512,8 @@ TEST_CASE("Wizard test", "[OffspringTests]") {
     for (auto move : moves) {
         State newState = state;
         newState.makeBlackAct(move);
-        cout << displayState(newState) << endl;
+        CHECK(newState.hash != state.hash);
+        cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
     CHECK((int) offsprings.size() == 6);
@@ -543,7 +568,8 @@ TEST_CASE("Wizard test", "[OffspringTests]") {
 
     for (int i = 0; i < 6; i++) {
         offsprings[i].unmakeBlackAct(moves[i]);
-        CHECK(displayState(offsprings[i]) == displayState(state));
+        CHECK(offsprings[i].display() == state.display());
+        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -561,7 +587,8 @@ TEST_CASE("White test", "[OffspringTests]") {
     for (auto move: moves) {
         State newState = state;
         newState.makeWhiteAct(move);
-        cout << displayState(newState) << endl;
+        CHECK(newState.hash != state.hash);
+        cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
     CHECK((int) offsprings.size() == 13);
@@ -672,7 +699,8 @@ TEST_CASE("White test", "[OffspringTests]") {
 
     for (int i = 0; i < 13; i++) {
         offsprings[i].unmakeWhiteAct(moves[i]);
-        CHECK(displayState(offsprings[i]) == displayState(state));
+        CHECK(offsprings[i].display() == state.display());
+        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -690,7 +718,8 @@ TEST_CASE("White test 2", "[OffspringTests]") {
     for (auto move: moves) {
         State newState = state;
         newState.makeBlackAct(move);
-        cout << displayState(newState) << endl;
+        CHECK(newState.hash != state.hash);
+        cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
     CHECK((int) offsprings.size() == 6);
@@ -745,6 +774,7 @@ TEST_CASE("White test 2", "[OffspringTests]") {
 
     for (int i = 0; i < 6; i++) {
         offsprings[i].unmakeBlackAct(moves[i]);
-        CHECK(displayState(offsprings[i]) == displayState(state));
+        CHECK(offsprings[i].display() == state.display());
+        CHECK(offsprings[i].hash == state.hash);
     }
 }

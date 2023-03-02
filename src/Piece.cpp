@@ -7,11 +7,11 @@ Piece::Piece(Side side, Type type) {
     health = maxHealth;
 }
 
-Piece::Piece(Side side, Type type, byte health) : Piece(side, type) {
+Piece::Piece(Side side, Type type, uint8 health) : Piece(side, type) {
     this->health = health;
 }
 
-byte Piece::maxHealthByType(Type type) {
+uint8 Piece::maxHealthByType(Type type) {
     switch (type) {
     case Type::King:
         return 4;

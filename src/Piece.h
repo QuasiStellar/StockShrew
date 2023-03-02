@@ -4,18 +4,16 @@
 #include "Side.h"
 #include "Type.h"
 
-class Piece {
+struct Piece {
 
-public:
     Side side;
     Type type;
-    byte maxHealth;
-    byte health;
+    uint8 maxHealth;
+    uint8 health;
 
     Piece(Side, Type);
 
-    Piece(Side, Type, byte);
+    Piece(Side, Type, uint8);
 
-private:
-    static byte maxHealthByType(Type);
+    static uint8 maxHealthByType(Type);
 };

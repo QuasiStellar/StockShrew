@@ -2,7 +2,7 @@
 
 using std::bitset, std::cout, std::endl, std::reverse, std::replace, std::string, std::to_string;
 
-string cellToString(byte cell) {
+string cellToString(uint8 cell) {
     switch (cell) {
         case 0:
             return "a1";
@@ -65,7 +65,7 @@ string displayAct(int move) {
     }
 }
 
-string displaySwap(byte move) {
+string displaySwap(uint8 move) {
     return "swap " + cellToString(move & 0b1111) + " " + cellToString(move >> 4);
 }
 

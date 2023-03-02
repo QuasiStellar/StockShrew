@@ -19,14 +19,14 @@ State fromInput(char *argv[]) {
     };
     Side side = argv[18][0] == 'b' || argv[18][0] == 'B' ? Side::Black : Side::White;
     Phase phase = argv[19][0] == 's' || argv[19][0] == 'S' ? Phase::Swap : Phase::Act;
-    byte blackSkips = strtol(argv[20], nullptr, 10);
-    byte whiteSkips = strtol(argv[21], nullptr, 10);
+    uint8 blackSkips = strtol(argv[20], nullptr, 10);
+    uint8 whiteSkips = strtol(argv[21], nullptr, 10);
     return {board, side, phase, blackSkips, whiteSkips};
 }
 
 string getInfo() {
     return "_______________\n"
-           "StockShrew v0.3\n"
+           "StockShrew v0.4\n"
            "https://github.com/QuasiStellar/StockShrew\n"
            "\n"
            "by QuasiStellar\n"
@@ -38,7 +38,8 @@ string getInfo() {
            "To analise a position run this program from a terminal with the following arguments:\n"
            "- depth of the search\n"
            "- all pieces on the board row by row from top to bottom from left to right\n"
-           "each piece consists of a letter (type) and number (hp), black pieces use capitalized letters\n"
+           "each piece consists of a letter (type) and number (hp), black pieces use capitalised letters\n"
+           "missing pieces are marked as __"
            "- side to play (b for black, w for white)\n"
            "- phase of the move (s for swap, a for act)\n"
            "- skips black has done in a row\n"
@@ -57,8 +58,9 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    byte depth = strtol(argv[1], nullptr, 10);
+    uint8 depth = strtol(argv[1], nullptr, 10);
     State root = fromInput(argv);
+    State::resetGlobals();
     setUp();
 
     Strategy strategy = Strategy::AlphaBeta;
@@ -79,6 +81,7 @@ int main(int argc, char *argv[]) {
 
     steady_clock::time_point begin = steady_clock::now();
     cout << "Search depth: " << (int) depth << endl;
+    cout << "Doing the search... This may take a while..." << endl;
     float eval = root.search(depth, strategy);
     cout << "Position evaluation: " << eval << endl;
     cout << State::stateCount << " states checked" << endl;

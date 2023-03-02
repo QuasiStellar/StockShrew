@@ -4,6 +4,8 @@
 #include <vector>
 #include <iostream>
 #include <bitset>
+#include <random>
+#include <unordered_map>
 
 #include "Common.h"
 
@@ -13,25 +15,25 @@ extern bool setup;
 
 /// parameter - bitboard
 /// number of set bits in the bitboard
-extern byte bitCount[65536];
+extern uint8 bitCount[65536];
 
 /// parameter - bitboard of your active pieces
 /// vector of index pairs
-extern vector<array<byte, 2>> swapPairs[65536];
+extern vector<array<uint8, 2>> swapPairs[65536];
 
 /// parameter - melee attackers bitboard
 /// bitmap of cells under attack
-extern ushort meleeTargets[65536];
+extern uint16 meleeTargets[65536];
 
 /// 1st parameter - archers bitboard
 /// 2nd parameter - shield
 /// bitmap of cells under attack
-extern ushort archerTargets[65536][17];
+extern uint16 archerTargets[65536][17];
 
 /// parameter - knight bitboard
 /// n % 16 - first knight
 /// n / 16 - second knight
-extern byte compressedKnights[65536];
+extern uint8 compressedKnights[65536];
 
 /// 1st parameter - target bitboard
 /// 2nd parameter - compressed knights
@@ -43,16 +45,20 @@ extern byte compressedKnights[65536];
 /// 1 << 2 - second knight down
 /// 1 << 1 - second knight left
 /// 1 << 0 - second knight right
-extern byte compressedKnightTargets[65536][256];
+extern uint8 compressedKnightTargets[65536][256];
 
 /// 1st parameter - compressed knight targets
 /// 2nd parameter - compressed knights
 /// vector knight target pairs
-extern vector<array<byte, 2>> knightTargetPairs[256][256];
+extern vector<array<uint8, 2>> knightTargetPairs[256][256];
 
 /// parameter - bitboard with 1 set bit
 /// index of the set bit
-extern byte idx[65536];
+extern uint8 idx[65536];
+
+extern uint32 pieceHashes[64];
+
+extern uint32 stateInfoHashes[64];
 
 void setBitCount();
 
@@ -69,5 +75,7 @@ void setCompressedKnightTargets();
 void setKnightTargetPairs();
 
 void setIndex();
+
+void setHashes();
 
 void setUp();
