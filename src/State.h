@@ -55,6 +55,8 @@ struct State {
 
     float search(uint8 depth, Strategy strategy);
 
+    pair<float, string> searchForMove(uint8 depth);
+
     [[nodiscard]] vector<pair<State, string>> getOffsprings() const;
 
     [[nodiscard]] vector<uint8> getBlackSwapMoves() const;
@@ -84,17 +86,25 @@ struct State {
 
     float abBlackSwap(uint8 depth);
 
+    pair<float, string> abBlackSwapBest(uint8 depth);
+
     float abBlackAct(float alpha, float beta, uint8 depth);
 
     float abBlackAct(uint8 depth);
+
+    pair<float, string> abBlackActBest(uint8 depth);
 
     float abWhiteSwap(float alpha, float beta, uint8 depth);
 
     float abWhiteSwap(uint8 depth);
 
+    pair<float, string> abWhiteSwapBest(uint8 depth);
+
     float abWhiteAct(float alpha, float beta, uint8 depth);
 
     float abWhiteAct(uint8 depth);
+
+    pair<float, string> abWhiteActBest(uint8 depth);
 
     float mmBlackSwap(uint8 depth);
 

@@ -3,7 +3,7 @@
 #include "Piece.h"
 #include "State.h"
 
-Piece* p(const char* input) {
+Piece* p(const string input) {
     Type type;
     if (input[0] == 'k' || input[0] == 'K') type = Type::King;
     else if (input[0] == 'n' || input[0] == 'N') type = Type::Knight;

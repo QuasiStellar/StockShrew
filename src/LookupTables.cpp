@@ -209,10 +209,8 @@ void setHashes() {
 
 void setUp() {
     if (setup) {
-        cout << "Lookup tables already set up." << endl;
         return;
     }
-    cout << "Setting up lookup tables..." << endl;
     setBitCount();
     setSwapPairs();
     setMeleeTargets();
@@ -222,6 +220,5 @@ void setUp() {
     setKnightTargetPairs();
     setIndex();
     setHashes();
-    cout << "Lookup tables set up." << endl;
     setup = true;
 }

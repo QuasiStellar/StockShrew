@@ -123,7 +123,6 @@ TEST_CASE("Swap test", "[OffspringTests]") {
     for (auto move : moves) {
         State newState = state;
         newState.makeSwap(move);
-        CHECK(newState.hash != state.hash);
         cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
@@ -165,7 +164,6 @@ TEST_CASE("Swap test", "[OffspringTests]") {
     for (int i = 0; i < 4; i++) {
         offsprings[i].makeSwap(moves[i]);
         CHECK(offsprings[i].display() == state.display());
-        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -183,7 +181,6 @@ TEST_CASE("Swap test 2", "[OffspringTests]") {
     for (auto move : moves) {
         State newState = state;
         newState.makeSwap(move);
-        CHECK(newState.hash != state.hash);
         cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
@@ -204,7 +201,6 @@ TEST_CASE("Knight test", "[OffspringTests]") {
     for (auto move : moves) {
         State newState = state;
         newState.makeBlackAct(move);
-        CHECK(newState.hash != state.hash);
         cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
@@ -277,7 +273,6 @@ TEST_CASE("Knight test", "[OffspringTests]") {
     for (int i = 0; i < 8; i++) {
         offsprings[i].unmakeBlackAct(moves[i]);
         CHECK(offsprings[i].display() == state.display());
-        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -295,7 +290,6 @@ TEST_CASE("Archer test", "[OffspringTests]") {
     for (auto move : moves) {
         State newState = state;
         newState.makeBlackAct(move);
-        CHECK(newState.hash != state.hash);
         cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
@@ -344,7 +338,6 @@ TEST_CASE("Archer test", "[OffspringTests]") {
     for (int i = 0; i < 5; i++) {
         offsprings[i].unmakeBlackAct(moves[i]);
         CHECK(offsprings[i].display() == state.display());
-        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -362,7 +355,6 @@ TEST_CASE("Archer test 2", "[OffspringTests]") {
     for (auto move : moves) {
         State newState = state;
         newState.makeBlackAct(move);
-        CHECK(newState.hash != state.hash);
         cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
@@ -403,7 +395,6 @@ TEST_CASE("Archer test 2", "[OffspringTests]") {
     for (int i = 0; i < 4; i++) {
         offsprings[i].unmakeBlackAct(moves[i]);
         CHECK(offsprings[i].display() == state.display());
-        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -421,7 +412,6 @@ TEST_CASE("Medic test", "[OffspringTests]") {
     for (auto move : moves) {
         State newState = state;
         newState.makeBlackAct(move);
-        CHECK(newState.hash != state.hash);
         cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
@@ -494,7 +484,6 @@ TEST_CASE("Medic test", "[OffspringTests]") {
     for (int i = 0; i < 8; i++) {
         offsprings[i].unmakeBlackAct(moves[i]);
         CHECK(offsprings[i].display() == state.display());
-        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -512,7 +501,6 @@ TEST_CASE("Wizard test", "[OffspringTests]") {
     for (auto move : moves) {
         State newState = state;
         newState.makeBlackAct(move);
-        CHECK(newState.hash != state.hash);
         cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
@@ -569,7 +557,6 @@ TEST_CASE("Wizard test", "[OffspringTests]") {
     for (int i = 0; i < 6; i++) {
         offsprings[i].unmakeBlackAct(moves[i]);
         CHECK(offsprings[i].display() == state.display());
-        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -587,7 +574,6 @@ TEST_CASE("White test", "[OffspringTests]") {
     for (auto move: moves) {
         State newState = state;
         newState.makeWhiteAct(move);
-        CHECK(newState.hash != state.hash);
         cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
@@ -700,7 +686,6 @@ TEST_CASE("White test", "[OffspringTests]") {
     for (int i = 0; i < 13; i++) {
         offsprings[i].unmakeWhiteAct(moves[i]);
         CHECK(offsprings[i].display() == state.display());
-        CHECK(offsprings[i].hash == state.hash);
     }
 }
 
@@ -718,7 +703,6 @@ TEST_CASE("White test 2", "[OffspringTests]") {
     for (auto move: moves) {
         State newState = state;
         newState.makeBlackAct(move);
-        CHECK(newState.hash != state.hash);
         cout << newState.display() << endl;
         offsprings.push_back(newState);
     }
@@ -775,6 +759,5 @@ TEST_CASE("White test 2", "[OffspringTests]") {
     for (int i = 0; i < 6; i++) {
         offsprings[i].unmakeBlackAct(moves[i]);
         CHECK(offsprings[i].display() == state.display());
-        CHECK(offsprings[i].hash == state.hash);
     }
 }

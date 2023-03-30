@@ -157,6 +157,26 @@ float State::search(uint8 depth, Strategy strategy) {
     return 0;
 }
 
+pair<float, string> State::searchForMove(uint8 depth) {
+    switch (stateInfo & 0b1) {
+        case BLACK:
+            switch ((stateInfo >> 1) & 0b1) {
+                case SWAP:
+                    return abBlackSwapBest(depth);
+                case ACT:
+                    return abBlackActBest(depth);
+            }
+        case WHITE:
+            switch ((stateInfo >> 1) & 0b1) {
+                case SWAP:
+                    return abWhiteSwapBest(depth);
+                case ACT:
+                    return abWhiteActBest(depth);
+            }
+    }
+    return pair(0.f, "");
+}
+
 int State::endGameScore() const {
     if ((stateInfo >> 2) & 11) return INT_MIN; // black is out of skips
     if ((stateInfo >> 4) & 11) return INT_MAX; // white is out of skips
@@ -476,6 +496,26 @@ float State::abBlackSwap(float alpha, float beta, uint8 depth) {
 
 float State::abBlackSwap(uint8 depth) { return abBlackSwap((float) INT_MIN, (float) INT_MAX, depth); }
 
+pair<float, string> State::abBlackSwapBest(uint8 depth) {
+    float alpha = (float) INT_MIN;
+    float beta = (float) INT_MAX;
+    stateCount++;
+    int endGameScore = this->endGameScore();
+    if (endGameScore != -1) return pair((float) endGameScore, "game over");
+    if (depth == 0) return pair(evaluate(), "zero depth");
+    uint8 bestMove = 0;
+    for (uint8 move: getBlackSwapMoves()) {
+        makeSwap(move);
+        float score = abBlackAct(alpha, beta, depth - 1);
+        makeSwap(move);
+        if (score > alpha) {
+            alpha = score;
+            bestMove = move;
+        }
+    }
+    return pair(alpha, displaySwap(bestMove));
+}
+
 float State::abBlackAct(float alpha, float beta, uint8 depth) {
     stateCount++;
     int endGameScore = this->endGameScore();
@@ -503,6 +543,26 @@ float State::abBlackAct(float alpha, float beta, uint8 depth) {
 }
 
 float State::abBlackAct(uint8 depth) { return abBlackAct((float) INT_MIN, (float) INT_MAX, depth); }
+
+pair<float, string> State::abBlackActBest(uint8 depth) {
+    float alpha = (float) INT_MIN;
+    float beta = (float) INT_MAX;
+    stateCount++;
+    int endGameScore = this->endGameScore();
+    if (endGameScore != -1) return pair((float) endGameScore, "game over");
+    if (depth == 0) return pair(evaluate(), "zero depth");
+    int bestMove = 0;
+    for (int move: getBlackActMoves()) {
+        makeBlackAct(move);
+        float score = abWhiteSwap(alpha, beta, depth - 1);
+        unmakeBlackAct(move);
+        if (score > alpha) {
+            alpha = score;
+            bestMove = move;
+        }
+    }
+    return pair(alpha, displayAct(bestMove));
+}
 
 float State::abWhiteSwap(float alpha, float beta, uint8 depth) {
     stateCount++;
@@ -532,6 +592,26 @@ float State::abWhiteSwap(float alpha, float beta, uint8 depth) {
 
 float State::abWhiteSwap(uint8 depth) { return abWhiteSwap((float) INT_MIN, (float) INT_MAX, depth); }
 
+pair<float, string> State::abWhiteSwapBest(uint8 depth) {
+    float alpha = (float) INT_MIN;
+    float beta = (float) INT_MAX;
+    stateCount++;
+    int endGameScore = this->endGameScore();
+    if (endGameScore != -1) return pair((float) endGameScore, "game over");
+    if (depth == 0) return pair(evaluate(), "zero depth");
+    uint8 bestMove = 0;
+    for (uint8 move: getWhiteSwapMoves()) {
+        makeSwap(move);
+        float score = abWhiteAct(alpha, beta, depth - 1);
+        makeSwap(move);
+        if (score < beta) {
+            beta = score;
+            bestMove = move;
+        }
+    }
+    return pair(beta, displaySwap(bestMove));
+}
+
 float State::abWhiteAct(float alpha, float beta, uint8 depth) {
     stateCount++;
     int endGameScore = this->endGameScore();
@@ -559,6 +639,26 @@ float State::abWhiteAct(float alpha, float beta, uint8 depth) {
 }
 
 float State::abWhiteAct(uint8 depth) { return abWhiteAct((float) INT_MIN, (float) INT_MAX, depth); }
+
+pair<float, string> State::abWhiteActBest(uint8 depth) {
+    float alpha = (float) INT_MIN;
+    float beta = (float) INT_MAX;
+    stateCount++;
+    int endGameScore = this->endGameScore();
+    if (endGameScore != -1) return pair((float) endGameScore, "game over");
+    if (depth == 0) return pair(evaluate(), "zero depth");
+    int bestMove = 0;
+    for (int move: getBlackActMoves()) {
+        makeWhiteAct(move);
+        float score = abBlackSwap(alpha, beta, depth - 1);
+        unmakeWhiteAct(move);
+        if (score < beta) {
+            beta = score;
+            bestMove = move;
+        }
+    }
+    return pair(beta, displayAct(bestMove));
+}
 
 #pragma region MiniMax
 
