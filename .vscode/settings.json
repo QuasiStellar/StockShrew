@@ -110,5 +110,10 @@
         "valarray": "cpp"
     },
     "cmake.configureOnOpen": true,
-    "cmake.generator": ""
+    "cmake.generator": "",
+    "cmake.debugConfig": {
+        "args": [
+            "-vled8", "a3", "m3", "a3", "k4", "w3", "n3", "n3", "s4", "S3", "N3", "N3", "W3", "K4", "A3", "M3", "A3", "b", "s", "0", "0"
+        ]
+    }
 }

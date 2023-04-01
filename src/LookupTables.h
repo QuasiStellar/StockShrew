@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <vector>
 #include <iostream>
 #include <bitset>
 #include <random>
@@ -9,7 +8,7 @@
 
 #include "Common.h"
 
-using std::array, std::vector, std::cout, std::endl;
+using std::array;
 
 extern bool setup;
 
@@ -18,8 +17,8 @@ extern bool setup;
 extern uint8 bitCount[65536];
 
 /// parameter - bitboard of your active pieces
-/// vector of index pairs
-extern vector<array<uint8, 2>> swapPairs[65536];
+/// array of index pairs
+extern array<array<uint8, 2>, MAX_SWAP_COUNT_FULL> swapPairs[65536];
 
 /// parameter - melee attackers bitboard
 /// bitmap of cells under attack
@@ -49,8 +48,8 @@ extern uint8 compressedKnightTargets[65536][256];
 
 /// 1st parameter - compressed knight targets
 /// 2nd parameter - compressed knights
-/// vector knight target pairs
-extern vector<array<uint8, 2>> knightTargetPairs[256][256];
+/// array of knight target pairs
+extern array<array<uint8, 2>, MAX_DOUBLE_HIT_COUNT> knightTargetPairs[256][256];
 
 /// parameter - bitboard with 1 set bit
 /// index of the set bit

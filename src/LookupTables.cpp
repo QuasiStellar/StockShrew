@@ -6,7 +6,7 @@ bool setup = false;
 
 uint8 bitCount[65536];
 
-vector<array<uint8, 2>> swapPairs[65536];
+array<array<uint8, 2>, MAX_SWAP_COUNT_FULL> swapPairs[65536];
 
 uint16 meleeTargets[65536];
 
@@ -16,7 +16,7 @@ uint8 compressedKnights[65536];
 
 uint8 compressedKnightTargets[65536][256];
 
-vector<array<uint8, 2>> knightTargetPairs[256][256];
+array<array<uint8, 2>, MAX_DOUBLE_HIT_COUNT> knightTargetPairs[256][256];
 
 uint8 idx[65536];
 
@@ -31,21 +31,22 @@ void setBitCount() {
 }
 
 void setSwapPairs() {
+    
     for (int i = 0; i < 65536; i++) {
-        swapPairs[i] = vector<array<uint8, 2>>();
+        int iter = 0;
         for (int j = 0; j < 16; j++) {
             if ((1 << j) & i) {
                 if (j + 4 < 16) {
-                    swapPairs[i].push_back(array<uint8, 2>{(uint8) j, (uint8) (j + 4)});
+                    swapPairs[i][iter++] = array<uint8, 2>{(uint8) j, (uint8) (j + 4)};
                 }
                 if (!(1 << (j - 4) & i) && j - 4 > -1) {
-                    swapPairs[i].push_back(array<uint8, 2>{(uint8) j, (uint8) (j - 4)});
+                    swapPairs[i][iter++] = array<uint8, 2>{(uint8) j, (uint8) (j - 4)};
                 }
                 if (j % 4 != 3) {
-                    swapPairs[i].push_back(array<uint8, 2>{(uint8) j, (uint8) (j + 1)});
+                    swapPairs[i][iter++] = array<uint8, 2>{(uint8) j, (uint8) (j + 1)};
                 }
                 if (!(1 << (j - 1) & i) && j % 4 != 0) {
-                    swapPairs[i].push_back(array<uint8, 2>{(uint8) j, (uint8) (j - 1)});
+                    swapPairs[i][iter++] = array<uint8, 2>{(uint8) j, (uint8) (j - 1)};
                 }
             }
         }
@@ -56,7 +57,7 @@ void setMeleeTargets() {
     for (int i = 0; i < 65536; i++) {
         uint16 map = 0;
         for (int cell = 0; cell < 16; cell++) {
-            if ((i & (1 << cell)) == 0) continue;
+            if (!(i & (1 << cell))) continue;
             int row = cell / 4;
             if (cell + 4 < 16) map |= 1 << (cell + 4);
             if (cell - 4 >= 0) map |= 1 << (cell - 4);
@@ -72,7 +73,7 @@ void setArcherTargets() {
         for (int shield = 0; shield < 17; shield++) {
             uint16 map = 0;
             for (int cell = 0; cell < 16; cell++) {
-                if ((i & (1 << cell)) == 0) continue;
+                if (!(i & (1 << cell))) continue;
                 int row = cell / 4;
                 for (int what = 0; what < 1; what++) {
                     if (cell + 4 >= 16) break;
@@ -145,44 +146,44 @@ void setCompressedKnightTargets() {
 void setKnightTargetPairs() {
     for (int i = 0; i < 256; i++) {
         for (int j = 0; j < 256; j++) {
-            knightTargetPairs[i][j] = vector<array<uint8, 2>>();
             uint8 firstKnight = j % 16;
             uint8 secondKnight = j / 16;
+            int iter = 0;
             if (i & (1 << 7) && i & (1 << 6)) {
-                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (firstKnight + 4), (uint8) (firstKnight - 4)});
+                knightTargetPairs[i][j][iter++] = array<uint8, 2>{(uint8) (firstKnight + 4), (uint8) (firstKnight - 4)};
             }
             if (i & (1 << 7) && i & (1 << 5)) {
-                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (firstKnight + 4), (uint8) (firstKnight - 1)});
+                knightTargetPairs[i][j][iter++] = array<uint8, 2>{(uint8) (firstKnight + 4), (uint8) (firstKnight - 1)};
             }
             if (i & (1 << 7) && i & (1 << 4) && secondKnight - firstKnight != 5) {
-                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (firstKnight + 4), (uint8) (firstKnight + 1)});
+                knightTargetPairs[i][j][iter++] = array<uint8, 2>{(uint8) (firstKnight + 4), (uint8) (firstKnight + 1)};
             }
             if (i & (1 << 6) && i & (1 << 5)) {
-                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (firstKnight - 4), (uint8) (firstKnight - 1)});
+                knightTargetPairs[i][j][iter++] = array<uint8, 2>{(uint8) (firstKnight - 4), (uint8) (firstKnight - 1)};
             }
             if (i & (1 << 6) && i & (1 << 4) && firstKnight - secondKnight != 3) {
-                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (firstKnight - 4), (uint8) (firstKnight + 1)});
+                knightTargetPairs[i][j][iter++] = array<uint8, 2>{(uint8) (firstKnight - 4), (uint8) (firstKnight + 1)};
             }
             if (i & (1 << 5) && i & (1 << 4)) {
-                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (firstKnight - 1), (uint8) (firstKnight + 1)});
+                knightTargetPairs[i][j][iter++] = array<uint8, 2>{(uint8) (firstKnight - 1), (uint8) (firstKnight + 1)};
             }
             if (i & (1 << 3) && i & (1 << 2)) {
-                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (secondKnight + 4), (uint8) (secondKnight - 4)});
+                knightTargetPairs[i][j][iter++] = array<uint8, 2>{(uint8) (secondKnight + 4), (uint8) (secondKnight - 4)};
             }
             if (i & (1 << 3) && i & (1 << 1)) {
-                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (secondKnight + 4), (uint8) (secondKnight - 1)});
+                knightTargetPairs[i][j][iter++] = array<uint8, 2>{(uint8) (secondKnight + 4), (uint8) (secondKnight - 1)};
             }
             if (i & (1 << 3) && i & (1 << 0) && firstKnight - secondKnight != 5) {
-                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (secondKnight + 4), (uint8) (secondKnight + 1)});
+                knightTargetPairs[i][j][iter++] = array<uint8, 2>{(uint8) (secondKnight + 4), (uint8) (secondKnight + 1)};
             }
             if (i & (1 << 2) && i & (1 << 1)) {
-                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (secondKnight - 4), (uint8) (secondKnight - 1)});
+                knightTargetPairs[i][j][iter++] = array<uint8, 2>{(uint8) (secondKnight - 4), (uint8) (secondKnight - 1)};
             }
             if (i & (1 << 2) && i & (1 << 0) && secondKnight - firstKnight != 3) {
-                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (secondKnight - 4), (uint8) (secondKnight + 1)});
+                knightTargetPairs[i][j][iter++] = array<uint8, 2>{(uint8) (secondKnight - 4), (uint8) (secondKnight + 1)};
             }
             if (i & (1 << 1) && i & (1 << 0)) {
-                knightTargetPairs[i][j].push_back(array<uint8, 2>{(uint8) (secondKnight - 1), (uint8) (secondKnight + 1)});
+                knightTargetPairs[i][j][iter++] = array<uint8, 2>{(uint8) (secondKnight - 1), (uint8) (secondKnight + 1)};
             }
         }
     }

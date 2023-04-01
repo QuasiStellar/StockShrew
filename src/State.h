@@ -19,7 +19,7 @@
 #include "StateRecord.h"
 #include "Strategy.h"
 
-using std::vector, std::pair, std::string, std::unordered_map, std::unordered_set;
+using std::array, std::vector, std::pair, std::string, std::unordered_map, std::unordered_set;
 
 struct State {
 
@@ -53,19 +53,19 @@ struct State {
           uint16 kings, uint16 knights, uint16 archers, uint16 medics, uint16 wizards, uint16 shields,
           uint8 stateInfo);
 
-    float search(uint8 depth, Strategy strategy);
+    int search(uint8 depth, Strategy strategy);
 
-    pair<float, string> searchForMove(uint8 depth);
+    pair<int, string> searchForMove(uint8 depth);
 
     [[nodiscard]] vector<pair<State, string>> getOffsprings() const;
 
-    [[nodiscard]] vector<uint8> getBlackSwapMoves() const;
+    [[nodiscard]] array<uint8, MAX_SWAP_COUNT> getBlackSwapMoves() const;
 
-    [[nodiscard]] vector<uint8> getWhiteSwapMoves() const;
+    [[nodiscard]] array<uint8, MAX_SWAP_COUNT> getWhiteSwapMoves() const;
 
-    [[nodiscard]] vector<int> getBlackActMoves() const;
+    [[nodiscard]] array<int, MAX_ACT_COUNT> getBlackActMoves() const;
 
-    [[nodiscard]] vector<int> getWhiteActMoves() const;
+    [[nodiscard]] array<int, MAX_ACT_COUNT> getWhiteActMoves() const;
 
     static long long stateCount;
 
@@ -73,7 +73,7 @@ struct State {
 
     [[nodiscard]] int endGameScore() const;
 
-    [[nodiscard]] float evaluate() const;
+    [[nodiscard]] int evaluate() const;
 
     /// black aims for high score
     /// white aims for low  score
@@ -82,37 +82,37 @@ struct State {
     /// beta  - lowest  score white can guarantee
     ///
     /// __alpha_____real_____beta__
-    float abBlackSwap(float alpha, float beta, uint8 depth);
+    int abBlackSwap(int alpha, int beta, uint8 depth);
 
-    float abBlackSwap(uint8 depth);
+    int abBlackSwap(uint8 depth);
 
-    pair<float, string> abBlackSwapBest(uint8 depth);
+    pair<int, string> abBlackSwapBest(uint8 depth);
 
-    float abBlackAct(float alpha, float beta, uint8 depth);
+    int abBlackAct(int alpha, int beta, uint8 depth);
 
-    float abBlackAct(uint8 depth);
+    int abBlackAct(uint8 depth);
 
-    pair<float, string> abBlackActBest(uint8 depth);
+    pair<int, string> abBlackActBest(uint8 depth);
 
-    float abWhiteSwap(float alpha, float beta, uint8 depth);
+    int abWhiteSwap(int alpha, int beta, uint8 depth);
 
-    float abWhiteSwap(uint8 depth);
+    int abWhiteSwap(uint8 depth);
 
-    pair<float, string> abWhiteSwapBest(uint8 depth);
+    pair<int, string> abWhiteSwapBest(uint8 depth);
 
-    float abWhiteAct(float alpha, float beta, uint8 depth);
+    int abWhiteAct(int alpha, int beta, uint8 depth);
 
-    float abWhiteAct(uint8 depth);
+    int abWhiteAct(uint8 depth);
 
-    pair<float, string> abWhiteActBest(uint8 depth);
+    pair<int, string> abWhiteActBest(uint8 depth);
 
-    float mmBlackSwap(uint8 depth);
+    int mmBlackSwap(uint8 depth);
 
-    float mmBlackAct(uint8 depth);
+    int mmBlackAct(uint8 depth);
 
-    float mmWhiteSwap(uint8 depth);
+    int mmWhiteSwap(uint8 depth);
 
-    float mmWhiteAct(uint8 depth);
+    int mmWhiteAct(uint8 depth);
 
     void swap(uint8 piece1, uint8 piece2);
 

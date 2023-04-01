@@ -49,7 +49,7 @@ TEST_CASE("Minimax depth 3", "[SearchTests]") {
     };
     auto state = State(board, Side::Black, Phase::Swap, 0, 0);
     state.search(3, Strategy::MiniMax);
-    CHECK(State::stateCount == 2062);
+    CHECK(State::stateCount == 2228);
     State::resetGlobals();
 }
 
@@ -63,7 +63,7 @@ TEST_CASE("Minimax depth 4", "[SearchTests]") {
     };
     auto state = State(board, Side::Black, Phase::Swap, 0, 0);
     state.search(4, Strategy::MiniMax);
-    CHECK(State::stateCount == 25689);
+    CHECK(State::stateCount == 27917);
     State::resetGlobals();
 }
 
@@ -77,7 +77,7 @@ TEST_CASE("Minimax depth 5", "[SearchTests]") {
     };
     auto state = State(board, Side::Black, Phase::Swap, 0, 0);
     state.search(5, Strategy::MiniMax);
-    CHECK(State::stateCount == 304020);
+    CHECK(State::stateCount == 356649);
     State::resetGlobals();
 }
 
@@ -91,7 +91,7 @@ TEST_CASE("Minimax depth 6", "[SearchTests]") {
     };
     auto state = State(board, Side::Black, Phase::Swap, 0, 0);
     state.search(6, Strategy::MiniMax);
-    CHECK(State::stateCount == 3951293);
+    CHECK(State::stateCount == 4658001);
     State::resetGlobals();
 }
 
@@ -118,9 +118,10 @@ TEST_CASE("Swap test", "[OffspringTests]") {
             {K4 N3 a3 W3}
     };
     auto state = State(board, Side::White, Phase::Swap, 0, 0);
-    vector<uint8> moves = state.getWhiteSwapMoves();
+    array<uint8, MAX_SWAP_COUNT> moves = state.getWhiteSwapMoves();
     vector<State> offsprings = vector<State>();
     for (auto move : moves) {
+        if (!move) break;
         State newState = state;
         newState.makeSwap(move);
         cout << newState.display() << endl;
@@ -176,9 +177,10 @@ TEST_CASE("Swap test 2", "[OffspringTests]") {
             {K4 A3 M3 A3}
     };
     auto state = State(board, Side::Black, Phase::Swap, 0, 0);
-    vector<uint8> moves = state.getBlackSwapMoves();
+    array<uint8, MAX_SWAP_COUNT> moves = state.getBlackSwapMoves();
     vector<State> offsprings = vector<State>();
     for (auto move : moves) {
+        if (!move) break;
         State newState = state;
         newState.makeSwap(move);
         cout << newState.display() << endl;
@@ -196,9 +198,10 @@ TEST_CASE("Knight test", "[OffspringTests]") {
             {K4 N3 a1 s2}
     };
     auto state = State(board, Side::Black, Phase::Act, 0, 0);
-    vector<int> moves = state.getBlackActMoves();
+    array<int, MAX_ACT_COUNT> moves = state.getBlackActMoves();
     vector<State> offsprings = vector<State>();
     for (auto move : moves) {
+        if (!move) break;
         State newState = state;
         newState.makeBlackAct(move);
         cout << newState.display() << endl;
@@ -285,9 +288,10 @@ TEST_CASE("Archer test", "[OffspringTests]") {
             {M1 K4 N3 A2}
     };
     auto state = State(board, Side::Black, Phase::Act, 0, 0);
-    vector<int> moves = state.getBlackActMoves();
+    array<int, MAX_ACT_COUNT> moves = state.getBlackActMoves();
     vector<State> offsprings = vector<State>();
     for (auto move : moves) {
+        if (!move) break;
         State newState = state;
         newState.makeBlackAct(move);
         cout << newState.display() << endl;
@@ -350,9 +354,10 @@ TEST_CASE("Archer test 2", "[OffspringTests]") {
             {M1 K4 __ __}
     };
     auto state = State(board, Side::Black, Phase::Act, 2, 2);
-    vector<int> moves = state.getBlackActMoves();
+    array<int, MAX_ACT_COUNT> moves = state.getBlackActMoves();
     vector<State> offsprings = vector<State>();
     for (auto move : moves) {
+        if (!move) break;
         State newState = state;
         newState.makeBlackAct(move);
         cout << newState.display() << endl;
@@ -407,9 +412,10 @@ TEST_CASE("Medic test", "[OffspringTests]") {
             {__ K3 __ __}
     };
     auto state = State(board, Side::Black, Phase::Act, 0, 0);
-    vector<int> moves = state.getBlackActMoves();
+    array<int, MAX_ACT_COUNT> moves = state.getBlackActMoves();
     vector<State> offsprings = vector<State>();
     for (auto move : moves) {
+        if (!move) break;
         State newState = state;
         newState.makeBlackAct(move);
         cout << newState.display() << endl;
@@ -496,9 +502,10 @@ TEST_CASE("Wizard test", "[OffspringTests]") {
             {W1 K4 N3 S2}
     };
     auto state = State(board, Side::Black, Phase::Act, 0, 0);
-    vector<int> moves = state.getBlackActMoves();
+    array<int, MAX_ACT_COUNT> moves = state.getBlackActMoves();
     vector<State> offsprings = vector<State>();
     for (auto move : moves) {
+        if (!move) break;
         State newState = state;
         newState.makeBlackAct(move);
         cout << newState.display() << endl;
@@ -569,9 +576,10 @@ TEST_CASE("White test", "[OffspringTests]") {
             {W1 K4 N3 __}
     };
     auto state = State(board, Side::White, Phase::Act, 2, 1);
-    vector<int> moves = state.getWhiteActMoves();
+    array<int, MAX_ACT_COUNT> moves = state.getWhiteActMoves();
     vector<State> offsprings = vector<State>();
     for (auto move: moves) {
+        if (!move) break;
         State newState = state;
         newState.makeWhiteAct(move);
         cout << newState.display() << endl;
@@ -698,9 +706,10 @@ TEST_CASE("White test 2", "[OffspringTests]") {
             {__ __ __ __}
     };
     auto state = State(board, Side::Black, Phase::Act, 0, 0);
-    vector<int> moves = state.getBlackActMoves();
+    array<int, MAX_ACT_COUNT> moves = state.getBlackActMoves();
     vector<State> offsprings = vector<State>();
     for (auto move: moves) {
+        if (!move) break;
         State newState = state;
         newState.makeBlackAct(move);
         cout << newState.display() << endl;

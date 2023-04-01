@@ -117,7 +117,7 @@ State::State(uint16 black, uint16 white,
              & (hp1 | hp2 | hp3 | hp4);
 }
 
-float State::search(uint8 depth, Strategy strategy) {
+int State::search(uint8 depth, Strategy strategy) {
     switch (strategy) {
         case Strategy::AlphaBeta:
             switch (stateInfo & 0b1) {
@@ -157,7 +157,7 @@ float State::search(uint8 depth, Strategy strategy) {
     return 0;
 }
 
-pair<float, string> State::searchForMove(uint8 depth) {
+pair<int, string> State::searchForMove(uint8 depth) {
     switch (stateInfo & 0b1) {
         case BLACK:
             switch ((stateInfo >> 1) & 0b1) {
@@ -174,30 +174,30 @@ pair<float, string> State::searchForMove(uint8 depth) {
                     return abWhiteActBest(depth);
             }
     }
-    return pair(0.f, "");
+    return pair(0, "");
 }
 
 int State::endGameScore() const {
-    if ((stateInfo >> 2) & 11) return INT_MIN; // black is out of skips
-    if ((stateInfo >> 4) & 11) return INT_MAX; // white is out of skips
+    if (((stateInfo >> 2) & 0b11) == 0b11) return INT_MIN; // black is out of skips
+    if (((stateInfo >> 4) & 0b11) == 0b11) return INT_MAX; // white is out of skips
     bool blackKing = (black & kings & (hp1 | hp2 | hp3 | hp4)) != 0;
     bool whiteKing = (white & kings & (hp1 | hp2 | hp3 | hp4)) != 0;
-    bool blackActive = (black & active) != 0;
-    bool whiteActive = (white & active) != 0;
+    bool blackActive = black & active;
+    bool whiteActive = white & active;
     if (!blackActive && !whiteActive) return 0;
     if (!blackKing || !blackActive) return INT_MIN;
     if (!whiteKing || !whiteActive) return INT_MAX;
-    if ((black & (white << 4 & (hp1 << 4 | hp2 << 4 | hp3 << 4 | hp4 << 4)
+    if (!(black & (white << 4 & (hp1 << 4 | hp2 << 4 | hp3 << 4 | hp4 << 4)
                   | white >> 4 & (hp1 >> 4 | hp2 >> 4 | hp3 >> 4 | hp4 >> 4)
                   | (white << 1) & NOT_RIGHTMOST & (hp1 << 1 | hp2 << 1 | hp3 << 1 | hp4 << 1)
                   | (white >> 1) & NOT_LEFTMOST & (hp1 >> 1 | hp2 >> 1 | hp3 >> 1 | hp4 >> 1))
-         & (hp1 | hp2 | hp3 | hp4)) == 0) {
+         & (hp1 | hp2 | hp3 | hp4))) {
         return 0; // island rule
     }
     return -1;
 }
 
-float State::evaluate() const {
+int State::evaluate() const {
 
     uint16 blackUp = black << 4 & (hp1 << 4 | hp2 << 4 | hp3 << 4 | hp4 << 4);
     uint16 blackDown = black >> 4 & (hp1 >> 4 | hp2 >> 4 | hp3 >> 4 | hp4 >> 4);
@@ -466,27 +466,15 @@ float State::evaluate() const {
                                        - bitCount[hp4 & white & shields & hyperactive]);
 }
 
-// #define HISTORY
-
-float State::abBlackSwap(float alpha, float beta, uint8 depth) {
+int State::abBlackSwap(int alpha, int beta, uint8 depth) {
     stateCount++;
     int endGameScore = this->endGameScore();
-    if (endGameScore != -1) return (float) endGameScore;
-    if (depth == 0) return evaluate();
+    if (endGameScore != -1) return endGameScore;
+    if (!depth) return evaluate();
     for (uint8 move: getBlackSwapMoves()) {
+        if (!move) return alpha;
         makeSwap(move);
-#ifdef HISTORY
-        StateRecord record = StateRecord(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields, stateInfo);
-        if (history.find(record) != history.end()) {
-            makeSwap(move);
-            return 0;
-        }
-        history.insert(record);
-#endif
-        float score = abBlackAct(alpha, beta, depth - 1);
-#ifdef HISTORY
-        history.erase(record);
-#endif
+        int score = abBlackAct(alpha, beta, depth - 1);
         makeSwap(move);
         if (score >= beta) return beta;
         if (score > alpha) alpha = score;
@@ -494,19 +482,20 @@ float State::abBlackSwap(float alpha, float beta, uint8 depth) {
     return alpha;
 }
 
-float State::abBlackSwap(uint8 depth) { return abBlackSwap((float) INT_MIN, (float) INT_MAX, depth); }
+int State::abBlackSwap(uint8 depth) { return abBlackSwap(INT_MIN, INT_MAX, depth); }
 
-pair<float, string> State::abBlackSwapBest(uint8 depth) {
-    float alpha = (float) INT_MIN;
-    float beta = (float) INT_MAX;
+pair<int, string> State::abBlackSwapBest(uint8 depth) {
+    int alpha = INT_MIN;
+    int beta = INT_MAX;
     stateCount++;
     int endGameScore = this->endGameScore();
-    if (endGameScore != -1) return pair((float) endGameScore, "game over");
-    if (depth == 0) return pair(evaluate(), "zero depth");
+    if (endGameScore != -1) return pair(endGameScore, "game over");
+    if (!depth) return pair(evaluate(), "zero depth");
     uint8 bestMove = 0;
     for (uint8 move: getBlackSwapMoves()) {
+        if (!move) break;
         makeSwap(move);
-        float score = abBlackAct(alpha, beta, depth - 1);
+        int score = abBlackAct(alpha, beta, depth - 1);
         makeSwap(move);
         if (score > alpha) {
             alpha = score;
@@ -516,25 +505,15 @@ pair<float, string> State::abBlackSwapBest(uint8 depth) {
     return pair(alpha, displaySwap(bestMove));
 }
 
-float State::abBlackAct(float alpha, float beta, uint8 depth) {
+int State::abBlackAct(int alpha, int beta, uint8 depth) {
     stateCount++;
     int endGameScore = this->endGameScore();
-    if (endGameScore != -1) return (float) endGameScore;
-    if (depth == 0) return evaluate();
+    if (endGameScore != -1) return endGameScore;
+    if (!depth) return evaluate();
     for (int move: getBlackActMoves()) {
+        if (!move) return alpha;
         makeBlackAct(move);
-#ifdef HISTORY
-        StateRecord record = StateRecord(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields, stateInfo);
-        if (history.find(record) != history.end()) {
-            unmakeBlackAct(move);
-            return 0;
-        }
-        history.insert(record);
-#endif
-        float score = abWhiteSwap(alpha, beta, depth - 1);
-#ifdef HISTORY
-        history.erase(record);
-#endif
+        int score = abWhiteSwap(alpha, beta, depth - 1);
         unmakeBlackAct(move);
         if (score >= beta) return beta;
         if (score > alpha) alpha = score;
@@ -542,19 +521,20 @@ float State::abBlackAct(float alpha, float beta, uint8 depth) {
     return alpha;
 }
 
-float State::abBlackAct(uint8 depth) { return abBlackAct((float) INT_MIN, (float) INT_MAX, depth); }
+int State::abBlackAct(uint8 depth) { return abBlackAct(INT_MIN, INT_MAX, depth); }
 
-pair<float, string> State::abBlackActBest(uint8 depth) {
-    float alpha = (float) INT_MIN;
-    float beta = (float) INT_MAX;
+pair<int, string> State::abBlackActBest(uint8 depth) {
+    int alpha = INT_MIN;
+    int beta = INT_MAX;
     stateCount++;
     int endGameScore = this->endGameScore();
-    if (endGameScore != -1) return pair((float) endGameScore, "game over");
-    if (depth == 0) return pair(evaluate(), "zero depth");
+    if (endGameScore != -1) return pair(endGameScore, "game over");
+    if (!depth) return pair(evaluate(), "zero depth");
     int bestMove = 0;
     for (int move: getBlackActMoves()) {
+        if (!move) break;
         makeBlackAct(move);
-        float score = abWhiteSwap(alpha, beta, depth - 1);
+        int score = abWhiteSwap(alpha, beta, depth - 1);
         unmakeBlackAct(move);
         if (score > alpha) {
             alpha = score;
@@ -564,25 +544,15 @@ pair<float, string> State::abBlackActBest(uint8 depth) {
     return pair(alpha, displayAct(bestMove));
 }
 
-float State::abWhiteSwap(float alpha, float beta, uint8 depth) {
+int State::abWhiteSwap(int alpha, int beta, uint8 depth) {
     stateCount++;
     int endGameScore = this->endGameScore();
-    if (endGameScore != -1) return (float) endGameScore;
-    if (depth == 0) return evaluate();
+    if (endGameScore != -1) return endGameScore;
+    if (!depth) return evaluate();
     for (uint8 move: getWhiteSwapMoves()) {
+        if (!move) return beta;
         makeSwap(move);
-#ifdef HISTORY
-        StateRecord record = StateRecord(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields, stateInfo);
-        if (history.find(record) != history.end()) {
-            makeSwap(move);
-            return 0;
-        }
-        history.insert(record);
-#endif
-        float score = abWhiteAct(alpha, beta, depth - 1);
-#ifdef HISTORY
-        history.erase(record);
-#endif
+        int score = abWhiteAct(alpha, beta, depth - 1);
         makeSwap(move);
         if (score <= alpha) return alpha;
         if (score < beta) beta = score;
@@ -590,19 +560,20 @@ float State::abWhiteSwap(float alpha, float beta, uint8 depth) {
     return beta;
 }
 
-float State::abWhiteSwap(uint8 depth) { return abWhiteSwap((float) INT_MIN, (float) INT_MAX, depth); }
+int State::abWhiteSwap(uint8 depth) { return abWhiteSwap(INT_MIN, INT_MAX, depth); }
 
-pair<float, string> State::abWhiteSwapBest(uint8 depth) {
-    float alpha = (float) INT_MIN;
-    float beta = (float) INT_MAX;
+pair<int, string> State::abWhiteSwapBest(uint8 depth) {
+    int alpha = INT_MIN;
+    int beta = INT_MAX;
     stateCount++;
     int endGameScore = this->endGameScore();
-    if (endGameScore != -1) return pair((float) endGameScore, "game over");
-    if (depth == 0) return pair(evaluate(), "zero depth");
+    if (endGameScore != -1) return pair(endGameScore, "game over");
+    if (!depth) return pair(evaluate(), "zero depth");
     uint8 bestMove = 0;
     for (uint8 move: getWhiteSwapMoves()) {
+        if (!move) break;
         makeSwap(move);
-        float score = abWhiteAct(alpha, beta, depth - 1);
+        int score = abWhiteAct(alpha, beta, depth - 1);
         makeSwap(move);
         if (score < beta) {
             beta = score;
@@ -612,25 +583,15 @@ pair<float, string> State::abWhiteSwapBest(uint8 depth) {
     return pair(beta, displaySwap(bestMove));
 }
 
-float State::abWhiteAct(float alpha, float beta, uint8 depth) {
+int State::abWhiteAct(int alpha, int beta, uint8 depth) {
     stateCount++;
     int endGameScore = this->endGameScore();
-    if (endGameScore != -1) return (float) endGameScore;
-    if (depth == 0) return evaluate();
+    if (endGameScore != -1) return endGameScore;
+    if (!depth) return evaluate();
     for (int move: getWhiteActMoves()) {
+        if (!move) return beta;
         makeWhiteAct(move);
-#ifdef HISTORY
-        StateRecord record = StateRecord(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields, stateInfo);
-        if (history.find(record) != history.end()) {
-            unmakeWhiteAct(move);
-            return 0;
-        }
-        history.insert(record);
-#endif
-        float score = abBlackSwap(alpha, beta, depth - 1);
-#ifdef HISTORY
-        history.erase(record);
-#endif
+        int score = abBlackSwap(alpha, beta, depth - 1);
         unmakeWhiteAct(move);
         if (score <= alpha) return alpha;
         if (score < beta) beta = score;
@@ -638,19 +599,20 @@ float State::abWhiteAct(float alpha, float beta, uint8 depth) {
     return beta;
 }
 
-float State::abWhiteAct(uint8 depth) { return abWhiteAct((float) INT_MIN, (float) INT_MAX, depth); }
+int State::abWhiteAct(uint8 depth) { return abWhiteAct(INT_MIN, INT_MAX, depth); }
 
-pair<float, string> State::abWhiteActBest(uint8 depth) {
-    float alpha = (float) INT_MIN;
-    float beta = (float) INT_MAX;
+pair<int, string> State::abWhiteActBest(uint8 depth) {
+    int alpha = INT_MIN;
+    int beta = INT_MAX;
     stateCount++;
     int endGameScore = this->endGameScore();
-    if (endGameScore != -1) return pair((float) endGameScore, "game over");
-    if (depth == 0) return pair(evaluate(), "zero depth");
+    if (endGameScore != -1) return pair(endGameScore, "game over");
+    if (!depth) return pair(evaluate(), "zero depth");
     int bestMove = 0;
     for (int move: getBlackActMoves()) {
+        if (!move) break;
         makeWhiteAct(move);
-        float score = abBlackSwap(alpha, beta, depth - 1);
+        int score = abBlackSwap(alpha, beta, depth - 1);
         unmakeWhiteAct(move);
         if (score < beta) {
             beta = score;
@@ -662,107 +624,64 @@ pair<float, string> State::abWhiteActBest(uint8 depth) {
 
 #pragma region MiniMax
 
-float State::mmBlackSwap(uint8 depth) {
+int State::mmBlackSwap(uint8 depth) {
     stateCount++;
     int endGameScore = this->endGameScore();
-    if (endGameScore != -1) return (float) endGameScore;
-    if (depth == 0) return evaluate();
-    float max = INT_MIN;
+    if (endGameScore != -1) return endGameScore;
+    if (!depth) return evaluate();
+    int max = INT_MIN;
     for (uint8 move: getBlackSwapMoves()) {
+        if (!move) return max;
         makeSwap(move);
-#ifdef HISTORY
-        StateRecord record = StateRecord(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields, stateInfo);
-        if (history.find(record) != history.end()) {
-            // cout << 2;
-            makeSwap(move);
-            return 0;
-        }
-        history.insert(record);
-#endif
-        float score = mmBlackAct(depth - 1);
-#ifdef HISTORY
-        history.erase(record);
-#endif
+        int score = mmBlackAct(depth - 1);
         makeSwap(move);
         if (score > max) max = score;
     }
     return max;
 }
 
-float State::mmBlackAct(uint8 depth) {
+int State::mmBlackAct(uint8 depth) {
     stateCount++;
     int endGameScore = this->endGameScore();
-    if (endGameScore != -1) return (float) endGameScore;
-    if (depth == 0) return evaluate();
-    float max = INT_MIN;
+    if (endGameScore != -1) return endGameScore;
+    if (!depth) return evaluate();
+    int max = INT_MIN;
     for (int move: getBlackActMoves()) {
+        if (!move) return max;
         makeBlackAct(move);
-#ifdef HISTORY
-        StateRecord record = StateRecord(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields, stateInfo);
-        if (history.find(record) != history.end()) {
-            // cout << 2;
-            unmakeBlackAct(move);
-            return 0;
-        }
-        history.insert(record);
-#endif
-        float score = mmWhiteSwap(depth - 1);
-#ifdef HISTORY
-        history.erase(record);
-#endif
+        int score = mmWhiteSwap(depth - 1);
         unmakeBlackAct(move);
         if (score > max) max = score;
     }
     return max;
 }
 
-float State::mmWhiteSwap(uint8 depth) {
+int State::mmWhiteSwap(uint8 depth) {
     stateCount++;
     int endGameScore = this->endGameScore();
-    if (endGameScore != -1) return (float) endGameScore;
-    if (depth == 0) return evaluate();
-    auto min = (float) INT_MAX;
+    if (endGameScore != -1) return endGameScore;
+    if (!depth) return evaluate();
+    auto min = INT_MAX;
     for (uint8 move: getWhiteSwapMoves()) {
+        if (!move) return min;
         makeSwap(move);
-#ifdef HISTORY
-        StateRecord record = StateRecord(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields, stateInfo);
-        if (history.find(record) != history.end()) {
-            makeSwap(move);
-            return 0;
-        }
-        history.insert(record);
-#endif
-        float score = mmWhiteAct(depth - 1);
-#ifdef HISTORY
-        history.erase(record);
-#endif
+        int score = mmWhiteAct(depth - 1);
         makeSwap(move);
         if (score < min) min = score;
     }
     return min;
 }
 
-float State::mmWhiteAct(uint8 depth) {
+int State::mmWhiteAct(uint8 depth) {
     stateCount++;
     int endGameScore = this->endGameScore();
-    if (endGameScore != -1) return (float) endGameScore;
-    if (depth == 0) return evaluate();
-    auto min = (float) INT_MAX;
+    if (endGameScore != -1) return endGameScore;
+    if (!depth) return evaluate();
+    auto min = INT_MAX;
     for (int move: getWhiteActMoves()) {
+        if (!move) return min;
         makeWhiteAct(move);
-#ifdef HISTORY
-        StateRecord record = StateRecord(black, white, hp1, hp2, hp3, hp4, kings, knights, archers, medics, wizards, shields, stateInfo);
-        if (history.find(record) != history.end()) {
-            // cout << 2;
-            unmakeWhiteAct(move);
-            return 0;
-        }
-        history.insert(record);
-#endif
-        float score = mmBlackSwap(depth - 1);
-#ifdef HISTORY
-        history.erase(record);
-#endif
+        int score = mmBlackSwap(depth - 1);
         unmakeWhiteAct(move);
         if (score < min) min = score;
     }
@@ -926,11 +845,12 @@ void State::unmakeWhiteAct(int actMask) {
 
 vector<pair<State, string>> State::getOffsprings() const {
     vector<pair<State, string>> offsprings = vector<pair<State, string>>();
-    vector<uint8> swapMoves = stateInfo & 1 ? getWhiteSwapMoves() : getBlackSwapMoves();
-    vector<int> actMoves = stateInfo & 1 ? getWhiteActMoves() : getBlackActMoves();
+    array<uint8, MAX_SWAP_COUNT> swapMoves = stateInfo & 1 ? getWhiteSwapMoves() : getBlackSwapMoves();
+    array<int, MAX_ACT_COUNT> actMoves = stateInfo & 1 ? getWhiteActMoves() : getBlackActMoves();
     switch ((stateInfo >> 1) & 0b1) {
         case SWAP:
             for (uint8 move: swapMoves) {
+                if (!move) break;
                 State newState = *this;
                 newState.makeSwap(move);
                 offsprings.emplace_back(newState, displaySwap(move));
@@ -938,6 +858,7 @@ vector<pair<State, string>> State::getOffsprings() const {
             break;
         case ACT:
             for (int move: actMoves) {
+                if (!move) break;
                 State newState = *this;
                 if (stateInfo & 1) newState.makeWhiteAct(move);
                 else newState.makeBlackAct(move);
@@ -948,45 +869,57 @@ vector<pair<State, string>> State::getOffsprings() const {
     return offsprings;
 }
 
-vector<uint8> State::getBlackSwapMoves() const {
-    vector<uint8> moves;
+array<uint8, MAX_SWAP_COUNT> State::getBlackSwapMoves() const {
+    array<uint8, MAX_SWAP_COUNT> moves;
     uint16 swapTargets = (black | white) & ~(white & shields) & (hp1 | hp2 | hp3 | hp4);
+    int iter = 0;
     for (auto &pair: swapPairs[black & active]) {
+        if (!pair[0] && !pair[1]) {
+            moves[iter] = 0;
+            return moves;
+        }
         if ((1 << pair[1] & swapTargets) != 0) {
-            moves.push_back((pair[0] << 4) + pair[1]);
+            moves[iter++] = (pair[0] << 4) + pair[1];
         }
     }
     return moves;
 }
 
-vector<uint8> State::getWhiteSwapMoves() const {
-    vector<uint8> moves;
+array<uint8, MAX_SWAP_COUNT> State::getWhiteSwapMoves() const {
+    array<uint8, MAX_SWAP_COUNT> moves;
     uint16 swapTargets = (black | white) & ~(black & shields) & (hp1 | hp2 | hp3 | hp4);
+    int iter = 0;
     for (auto &pair: swapPairs[white & active]) {
+        if (!pair[0] && !pair[1]) {
+            moves[iter] = 0;
+            return moves;
+        }
         if ((1 << pair[1] & swapTargets) != 0) {
-            moves.push_back((pair[0] << 4) + pair[1]);
+            moves[iter++] = (pair[0] << 4) + pair[1];
         }
     }
     return moves;
 }
 
-vector<int> State::getBlackActMoves() const {
-    vector<int> moves;
+array<int, MAX_ACT_COUNT> State::getBlackActMoves() const {
+    array<int, MAX_ACT_COUNT> moves;
     uint8 skips = (stateInfo >> 2 & 0b11) << 2;
     uint8 medicIndex;
     uint16 wizardSwap;
+    int iter = 0;
 
     // Double attack
     if (active & black & knights) {
-        vector<array<uint8, 2>> targets = knightTargetPairs[
-                compressedKnightTargets[
-                        meleeTargets[knights & active & black] & white & (hp1 | hp2 | hp3 | hp4)
-                ][
-                        compressedKnights[active & black & knights]
-                ]
+        array<array<uint8, 2>, MAX_DOUBLE_HIT_COUNT> targets = knightTargetPairs[
+            compressedKnightTargets[
+                meleeTargets[knights & active & black] & white & (hp1 | hp2 | hp3 | hp4)
+            ][
+                compressedKnights[active & black & knights]
+            ]
         ][compressedKnights[active & black & knights]];
         for (array<uint8, 2> &target: targets) {
-            moves.push_back((((1 << target[0]) + (1 << target[1])) << 4) + 0b0010 + skips);
+            if (!target[0] && !target[1]) break;
+            moves[iter++] = (((1 << target[0]) + (1 << target[1])) << 4) + 0b0010 + skips;
         }
     }
 
@@ -1000,63 +933,63 @@ vector<int> State::getBlackActMoves() const {
         uint16 medicLeft = medicIndex % 4 != 0 ? (medic >> 1) & healTargets : 0;
         uint16 medicRight = medicIndex % 4 != 3 ? (medic << 1) & healTargets : 0;
         if (medicUp && medicDown && medicLeft && medicRight) {
-            moves.push_back(((medicUp | medicDown | medicLeft | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicDown | medicLeft | medicRight) << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicUp && medicDown && medicLeft) {
-            moves.push_back(((medicUp | medicDown | medicLeft) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicDown | medicLeft) << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicUp && medicDown && medicRight) {
-            moves.push_back(((medicUp | medicDown | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicDown | medicRight) << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicUp && medicLeft && medicRight) {
-            moves.push_back(((medicUp | medicLeft | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicLeft | medicRight) << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicDown && medicLeft && medicRight) {
-            moves.push_back(((medicDown | medicLeft | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicDown | medicLeft | medicRight) << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicUp && medicDown) {
-            moves.push_back(((medicUp | medicDown) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicDown) << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicUp && medicLeft) {
-            moves.push_back(((medicUp | medicLeft) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicLeft) << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicUp && medicRight) {
-            moves.push_back(((medicUp | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicRight) << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicDown && medicLeft) {
-            moves.push_back(((medicDown | medicLeft) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicDown | medicLeft) << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicDown && medicRight) {
-            moves.push_back(((medicDown | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicDown | medicRight) << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicLeft && medicRight) {
-            moves.push_back(((medicLeft | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicLeft | medicRight) << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicUp) {
-            moves.push_back((medicUp << 4) + 0b0011 + skips);
+            moves[iter++] = (medicUp << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicDown) {
-            moves.push_back((medicDown << 4) + 0b0011 + skips);
+            moves[iter++] = (medicDown << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicLeft) {
-            moves.push_back((medicLeft << 4) + 0b0011 + skips);
+            moves[iter++] = (medicLeft << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
         if (medicRight) {
-            moves.push_back((medicRight << 4) + 0b0011 + skips);
+            moves[iter++] = (medicRight << 4) + 0b0011 + skips;
             // goto medicEnd;
         }
     }
@@ -1068,7 +1001,7 @@ vector<int> State::getBlackActMoves() const {
                          & white & (hp1 | hp2 | hp3 | hp4);
     for (uint8 i = 0; underAttack != 0; underAttack >>= 1) {
         if (underAttack & 1) {
-            moves.push_back((1 << i << 4) + 0b0010 + skips);
+            moves[iter++] = (1 << i << 4) + 0b0010 + skips;
         }
         i++;
     }
@@ -1079,35 +1012,39 @@ vector<int> State::getBlackActMoves() const {
         wizardSwap = black & ~wizards & (hp1 | hp2 | hp3 | hp4);
         for (uint8 i = 0; wizardSwap != 0; wizardSwap >>= 1) {
             if (wizardSwap & 1) {
-                moves.push_back((idx[black & wizards] << 8) + (i << 4) + 0b0001 + skips);
+                moves[iter++] = (idx[black & wizards] << 8) + (i << 4) + 0b0001 + skips;
             }
             i++;
         }
     }
 
     // Skip
-    moves.push_back(0);
+    moves[iter++] = 0b100;
+
+    moves[iter] = 0;
 
     return moves;
 }
 
-vector<int> State::getWhiteActMoves() const {
-    vector<int> moves;
+array<int, MAX_ACT_COUNT> State::getWhiteActMoves() const {
+    array<int, MAX_ACT_COUNT> moves;
     uint8 skips = (stateInfo >> 4 & 0b11) << 2;
     uint8 medicIndex;
     uint16 wizardSwap;
+    int iter = 0;
 
     // Double attack
     if (active & white & knights) {
-        vector<array<uint8, 2>> targets = knightTargetPairs[
-                compressedKnightTargets[
-                        meleeTargets[knights & active & white] & black & (hp1 | hp2 | hp3 | hp4)
-                ][
-                        compressedKnights[active & white & knights]
-                ]
+        array<array<uint8, 2>, MAX_DOUBLE_HIT_COUNT> targets = knightTargetPairs[
+            compressedKnightTargets[
+                meleeTargets[knights & active & white] & black & (hp1 | hp2 | hp3 | hp4)
+            ][
+                compressedKnights[active & white & knights]
+            ]
         ][compressedKnights[active & white & knights]];
         for (auto &target: targets) {
-            moves.push_back((((1 << target[0]) + (1 << target[1])) << 4) + 0b0010 + skips);
+            if (!target[0] && !target[1]) break;
+            moves[iter++] = (((1 << target[0]) + (1 << target[1])) << 4) + 0b0010 + skips;
         }
     }
 
@@ -1121,49 +1058,49 @@ vector<int> State::getWhiteActMoves() const {
         uint16 medicLeft = medicIndex % 4 != 0 ? (medic >> 1) & healTargets : 0;
         uint16 medicRight = medicIndex % 4 != 3 ? (medic << 1) & healTargets : 0;
         if (medicUp && medicDown && medicLeft && medicRight) {
-            moves.push_back(((medicUp | medicDown | medicLeft | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicDown | medicLeft | medicRight) << 4) + 0b0011 + skips;
         }
         if (medicUp && medicDown && medicLeft) {
-            moves.push_back(((medicUp | medicDown | medicLeft) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicDown | medicLeft) << 4) + 0b0011 + skips;
         }
         if (medicUp && medicDown && medicRight) {
-            moves.push_back(((medicUp | medicDown | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicDown | medicRight) << 4) + 0b0011 + skips;
         }
         if (medicUp && medicLeft && medicRight) {
-            moves.push_back(((medicUp | medicLeft | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicLeft | medicRight) << 4) + 0b0011 + skips;
         }
         if (medicDown && medicLeft && medicRight) {
-            moves.push_back(((medicDown | medicLeft | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicDown | medicLeft | medicRight) << 4) + 0b0011 + skips;
         }
         if (medicUp && medicDown) {
-            moves.push_back(((medicUp | medicDown) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicDown) << 4) + 0b0011 + skips;
         }
         if (medicUp && medicLeft) {
-            moves.push_back(((medicUp | medicLeft) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicLeft) << 4) + 0b0011 + skips;
         }
         if (medicUp && medicRight) {
-            moves.push_back(((medicUp | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicUp | medicRight) << 4) + 0b0011 + skips;
         }
         if (medicDown && medicLeft) {
-            moves.push_back(((medicDown | medicLeft) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicDown | medicLeft) << 4) + 0b0011 + skips;
         }
         if (medicDown && medicRight) {
-            moves.push_back(((medicDown | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicDown | medicRight) << 4) + 0b0011 + skips;
         }
         if (medicLeft && medicRight) {
-            moves.push_back(((medicLeft | medicRight) << 4) + 0b0011 + skips);
+            moves[iter++] = ((medicLeft | medicRight) << 4) + 0b0011 + skips;
         }
         if (medicUp) {
-            moves.push_back((medicUp << 4) + 0b0011 + skips);
+            moves[iter++] = (medicUp << 4) + 0b0011 + skips;
         }
         if (medicDown) {
-            moves.push_back((medicDown << 4) + 0b0011 + skips);
+            moves[iter++] = (medicDown << 4) + 0b0011 + skips;
         }
         if (medicLeft) {
-            moves.push_back((medicLeft << 4) + 0b0011 + skips);
+            moves[iter++] = (medicLeft << 4) + 0b0011 + skips;
         }
         if (medicRight) {
-            moves.push_back((medicRight << 4) + 0b0011 + skips);
+            moves[iter++] = (medicRight << 4) + 0b0011 + skips;
         }
     }
 
@@ -1173,7 +1110,7 @@ vector<int> State::getWhiteActMoves() const {
                          & black & (hp1 | hp2 | hp3 | hp4);
     for (uint8 i = 0; underAttack != 0; underAttack >>= 1) {
         if (underAttack & 1) {
-            moves.push_back((1 << i << 4) + 0b0010 + skips);
+            moves[iter++] = (1 << i << 4) + 0b0010 + skips;
         }
         i++;
     }
@@ -1183,14 +1120,16 @@ vector<int> State::getWhiteActMoves() const {
         wizardSwap = white & ~wizards & (hp1 | hp2 | hp3 | hp4);
         for (uint8 i = 0; wizardSwap != 0; wizardSwap >>= 1) {
             if (wizardSwap & 1) {
-                moves.push_back((idx[white & wizards] << 8) + (i << 4) + 0b0001 + skips);
+                moves[iter++] = (idx[white & wizards] << 8) + (i << 4) + 0b0001 + skips;
             }
             i++;
         }
     }
 
     // Skip
-    moves.push_back(0);
+    moves[iter++] = 0b100;
+
+    moves[iter] = 0;
 
     return moves;
 }

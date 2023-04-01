@@ -101,11 +101,11 @@ int main(int argc, char *argv[]) {
 
         if (list) {
             vector<pair<State, string>> variants = root.getOffsprings();
-            multimap<float, string> evaluation_map = multimap<float, string>();
+            multimap<int, string> evaluation_map = multimap<int, string>();
             for (auto variant: variants) {
-                evaluation_map.insert(pair<float, string>(
-                        variant.first.search(depth - 1, strategy),
-                        variant.second)
+                evaluation_map.insert(pair<int, string>(
+                    variant.first.search(depth - 1, strategy),
+                    variant.second)
                 );
             }
             for (auto const &[evaluation, move]: evaluation_map)
@@ -123,8 +123,8 @@ int main(int argc, char *argv[]) {
             cout << "Search depth: " << depth << endl;
             cout << "Doing the search... This may take a while..." << endl;
         }
-        pair<float, string> evaluationAndBestMove = root.searchForMove(depth);
-        float evaluation = evaluationAndBestMove.first;
+        pair<int, string> evaluationAndBestMove = root.searchForMove(depth);
+        int evaluation = evaluationAndBestMove.first;
         string bestMove = evaluationAndBestMove.second;
         if (verbose) {
             if (eval) {
